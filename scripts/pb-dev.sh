@@ -46,7 +46,7 @@ echo_debug() {
 
 # Parse command line arguments
 ARGS=()
-BACKGROUND=false
+BACKGROUND=true
 QUIET=false
 
 while [[ $# -gt 0 ]]; do
@@ -59,8 +59,8 @@ while [[ $# -gt 0 ]]; do
             DEV_HOST="$2"
             shift 2
             ;;
-        --background|-bg)
-            BACKGROUND=true
+        --foreground|-fg)
+            BACKGROUND=false
             shift
             ;;
         --quiet|-q)
@@ -75,17 +75,17 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --port PORT        Set port (default: 8090)"
             echo "  --host HOST        Set host (default: 127.0.0.1)"
-            echo "  --background, -bg  Run in background"
+            echo "  --foreground, -fg  Run in foreground (default: background)"
             echo "  --quiet, -q       Suppress output (useful for automation)"
             echo "  --help, -h        Show this help message"
             echo ""
             echo "Any additional arguments will be passed directly to PocketBase"
             echo ""
             echo "Examples:"
-            echo "  $0                           # Start with defaults"
+            echo "  $0                           # Start in background (default)"
             echo "  $0 --port 9090             # Start on port 9090"
             echo "  $0 --host 0.0.0.0          # Listen on all interfaces"
-            echo "  $0 --background             # Start in background"
+            echo "  $0 --foreground             # Start in foreground"
             echo "  $0 serve --dev             # Pass --dev flag to PocketBase"
             exit 0
             ;;

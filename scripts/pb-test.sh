@@ -46,7 +46,7 @@ echo_debug() {
 
 # Parse command line arguments
 ARGS=()
-BACKGROUND=false
+BACKGROUND=true
 RESET_DB=false
 QUIET=false
 
@@ -60,8 +60,8 @@ while [[ $# -gt 0 ]]; do
             TEST_HOST="$2"
             shift 2
             ;;
-        --background|-bg)
-            BACKGROUND=true
+        --foreground|-fg)
+            BACKGROUND=false
             shift
             ;;
         --reset)
@@ -80,7 +80,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --port PORT        Set port (default: 8091)"
             echo "  --host HOST        Set host (default: 127.0.0.1)"
-            echo "  --background, -bg  Run in background"
+            echo "  --foreground, -fg  Run in foreground (default: background)"
             echo "  --reset           Reset test database before starting"
             echo "  --quiet, -q       Suppress output (useful for testing)"
             echo "  --help, -h        Show this help message"
@@ -88,9 +88,9 @@ while [[ $# -gt 0 ]]; do
             echo "Any additional arguments will be passed directly to PocketBase"
             echo ""
             echo "Examples:"
-            echo "  $0                           # Start test server"
+            echo "  $0                           # Start in background (default)"
             echo "  $0 --port 9091             # Start on port 9091"
-            echo "  $0 --background --quiet     # Start in background, no output"
+            echo "  $0 --foreground --quiet     # Start in foreground, no output"
             echo "  $0 --reset                  # Reset DB and start"
             exit 0
             ;;
