@@ -295,7 +295,7 @@ case $FIRST_ARG in
                 load_env "$ENVIRONMENT"
                 if setup_admin_user "$ENVIRONMENT" false; then
                     echo_success "Admin setup complete for $ENVIRONMENT environment"
-                    echo_info "Admin: $ADMIN_EMAIL / $ADMIN_PASSWORD"
+                    echo_info "Admin: $SETUP_ADMIN_EMAIL / $SETUP_ADMIN_PASSWORD"
                 else
                     exit 1
                 fi

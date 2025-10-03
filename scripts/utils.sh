@@ -341,6 +341,11 @@ setup_admin_user() {
                     ;;
             esac
         fi
+        
+        # Export the credentials used for the calling script to access
+        export SETUP_ADMIN_EMAIL="$admin_email"
+        export SETUP_ADMIN_PASSWORD="$admin_password"
+        
         return 0
     else
         case $environment in
