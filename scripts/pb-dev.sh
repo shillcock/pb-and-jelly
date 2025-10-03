@@ -115,7 +115,7 @@ fi
 mkdir -p "$DEV_DIR/pb_data"
 
 # Prepare command with explicit data directory
-PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http="${DEV_HOST}:${DEV_PORT}" --dir="$DEV_DIR/pb_data")
+PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http "$DEV_HOST:$DEV_PORT" --dir "$DEV_DIR/pb_data")
 
 if [ "$BACKGROUND" = true ]; then
     # Run in background

@@ -107,7 +107,7 @@ test_success "Admin user setup completed"
 
 # Test 8: Start test server
 test_info "Testing test server..."
-if ! ./pb.sh test start --background --quiet --reset; then
+if ! ./pb.sh test start --quiet; then
     test_error "Failed to start test server"
 fi
 sleep 3

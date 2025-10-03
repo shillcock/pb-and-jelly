@@ -131,7 +131,7 @@ if [ "$RESET_DB" = false ]; then
 fi
 
 # Prepare command with explicit data directory
-PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http="${TEST_HOST}:${TEST_PORT}" --dev=false --dir="$TEST_DIR/pb_data")
+PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http "$TEST_HOST:$TEST_PORT" --dir "$TEST_DIR/pb_data")
 
 if [ "$BACKGROUND" = true ]; then
     # Run in background
