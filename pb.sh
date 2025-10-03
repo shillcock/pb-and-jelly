@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/utils.sh"
 
-# Load environment variables
+# Load environment for help display
 load_env
 
 show_help() {
@@ -20,11 +20,10 @@ show_help() {
     echo "Environment Commands:"
     echo "  <env> start         Start server (env: dev|test)"
     echo "  <env> stop          Stop server"
-    echo "  <env> setup-users   Set up admin and test users"
-    echo "  <env> create-user   Create a new user interactively"
+    echo "  <env> setup         Set up admin user (without running server)"
+    echo "  <env> seed-users    Seed users from JSON file"
     echo "  <env> clean         Clean environment data"
     echo "  <env> status        Show environment status"
-    echo ""
     echo "Global Commands:"
     echo "  install             Download and install PocketBase binary"
     echo "  upgrade             Show available versions and upgrade PocketBase"
@@ -39,21 +38,21 @@ show_help() {
     echo "  $0 install                      # Download PocketBase"
     echo "  $0 upgrade                      # Show available versions and upgrade"
     echo "  $0 dev start                    # Start dev server"
+    echo "  $0 dev start --background       # Start dev server in background"
     echo "  $0 test start --background      # Start test server in background"
-    echo "  $0 dev setup-users              # Setup users in dev environment"
+    echo "  ./pb.sh dev seed-users               # Seed users in dev environment"
     echo "  $0 test stop                    # Stop test server"
     echo "  $0 dev clean --force            # Clean dev environment"
     echo "  $0 status                       # Check all server status"
-    echo "  $0 test create-user             # Create user in test environment"
     echo ""
     echo "Configuration Files:"
-    echo "  .env.dev, .env.test - Environment-specific settings"
     echo "  .pb-version - Version pinning"
+    echo "  {env}/{env}-users.json - User seed files (optional)"
     echo ""
-    echo "Current Configuration:"
-    echo "  Host: $PB_HOST"
+    echo "Environment Settings (hardcoded):"
+    echo "  Dev: Port 8090, Host 127.0.0.1"
+    echo "  Test: Port 8091, Host 127.0.0.1"
     echo "  PB Version: $PB_VERSION (from .pb-version file)"
-    echo "  (Edit .env.dev/.env.test to customize)"
 }
 
 show_status() {
@@ -163,92 +162,6 @@ show_env_status() {
     fi
 }
 
-create_user_interactive() {
-    local environment="$1"
-    
-    if [ "$environment" != "dev" ] && [ "$environment" != "test" ]; then
-        echo_error "Invalid environment: $environment. Use 'dev' or 'test'"
-        exit 1
-    fi
-    
-    # Load environment-specific configuration
-    load_env "$environment"
-    local port="$PORT"
-    
-    local pb_url="http://$PB_HOST:$port"
-    
-    echo_info "Creating new user in $environment environment"
-    echo_debug "PocketBase URL: $pb_url"
-    
-    # Check if PocketBase is running
-    if ! wait_for_pocketbase "$pb_url" 5; then
-        echo_error "PocketBase $environment server is not running"
-        echo_info "Start it first: $0 $environment start"
-        exit 1
-    fi
-    
-    # Get user details interactively
-    echo ""
-    read -p "Email: " user_email
-    read -s -p "Password: " user_password
-    echo ""
-    read -s -p "Confirm Password: " user_password_confirm
-    echo ""
-    
-    if [ "$user_password" != "$user_password_confirm" ]; then
-        echo_error "Passwords don't match"
-        exit 1
-    fi
-    
-    read -p "Name (optional): " user_name
-    
-    # Authenticate as admin first
-    echo_info "Authenticating as admin..."
-    AUTH_RESPONSE=$(curl -s -X POST "$pb_url/api/admins/auth-with-password" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"identity\": \"$ADMIN_EMAIL\",
-            \"password\": \"$ADMIN_PASSWORD\"
-        }")
-    
-    if ! echo "$AUTH_RESPONSE" | grep -q '"token"'; then
-        echo_error "Failed to authenticate as admin. Make sure admin user exists."
-        echo_info "Run: $0 $environment setup-users"
-        exit 1
-    fi
-    
-    ADMIN_TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-    
-    # Create the user
-    echo_info "Creating user..."
-    USER_DATA="{
-        \"email\": \"$user_email\",
-        \"password\": \"$user_password\",
-        \"passwordConfirm\": \"$user_password\""
-    
-    if [ -n "$user_name" ]; then
-        USER_DATA="$USER_DATA,
-        \"name\": \"$user_name\""
-    fi
-    
-    USER_DATA="$USER_DATA
-    }"
-    
-    USER_RESPONSE=$(curl -s -X POST "$pb_url/api/collections/users/records" \
-        -H "Authorization: Bearer $ADMIN_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "$USER_DATA")
-    
-    if echo "$USER_RESPONSE" | grep -q '"id"'; then
-        echo_success "User created successfully!"
-        echo_info "Email: $user_email"
-        [ -n "$user_name" ] && echo_info "Name: $user_name"
-    else
-        echo_error "Failed to create user"
-        echo_debug "Response: $USER_RESPONSE"
-        exit 1
-    fi
-}
 
 show_upgrade_options() {
     echo_info "PocketBase Version Management"
@@ -359,7 +272,7 @@ case $FIRST_ARG in
         if [ $# -eq 0 ]; then
             echo_error "Command required after environment"
             echo_info "Usage: $0 $ENVIRONMENT <command>"
-            echo_info "Available commands: start, stop, setup-users, create-user, clean, status"
+            echo_info "Available commands: start, stop, setup, seed-users, clean, status"
             exit 1
         fi
         
@@ -377,11 +290,18 @@ case $FIRST_ARG in
             stop)
                 exec "$SCRIPT_DIR/scripts/stop.sh" "$ENVIRONMENT" "$@"
                 ;;
-            setup-users)
-                exec "$SCRIPT_DIR/scripts/setup-users.sh" "$ENVIRONMENT" "$@"
+            setup)
+                # Load environment-specific configuration and setup admin
+                load_env "$ENVIRONMENT"
+                if setup_admin_user "$ENVIRONMENT" false; then
+                    echo_success "Admin setup complete for $ENVIRONMENT environment"
+                    echo_info "Admin: $ADMIN_EMAIL / $ADMIN_PASSWORD"
+                else
+                    exit 1
+                fi
                 ;;
-            create-user)
-                create_user_interactive "$ENVIRONMENT"
+            seed-users)
+                exec "$SCRIPT_DIR/scripts/seed-users.sh" "$ENVIRONMENT" "$@"
                 ;;
             clean)
                 exec "$SCRIPT_DIR/scripts/clean.sh" "$ENVIRONMENT" "$@"
@@ -397,20 +317,20 @@ case $FIRST_ARG in
                 echo "Commands:"
                 echo "  start         Start $ENVIRONMENT server"
                 echo "  stop          Stop $ENVIRONMENT server"
-                echo "  setup-users   Set up admin and test users"
-                echo "  create-user   Create a new user interactively"
+                echo "  setup         Set up admin user (without running server)"
+                echo "  seed-users    Seed users from JSON file"
                 echo "  clean         Clean $ENVIRONMENT environment data"
                 echo "  status        Show $ENVIRONMENT environment status"
-                echo ""
                 echo "Examples:"
                 echo "  $0 $ENVIRONMENT start                    # Start server"
                 echo "  $0 $ENVIRONMENT start --background       # Start in background (test only)"
-                echo "  $0 $ENVIRONMENT setup-users              # Setup users"
+                echo "  $0 $ENVIRONMENT setup                    # Setup admin user first"
+                echo "  $0 $ENVIRONMENT seed-users               # Seed users from JSON"
                 echo "  $0 $ENVIRONMENT clean --force            # Clean without confirmation"
                 ;;
             *)
                 echo_error "Unknown command for $ENVIRONMENT environment: $COMMAND"
-                echo_info "Available commands: start, stop, setup-users, create-user, clean, status"
+                echo_info "Available commands: start, stop, setup, seed-users, clean, status"
                 echo_info "Use '$0 $ENVIRONMENT --help' for more information"
                 exit 1
                 ;;

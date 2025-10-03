@@ -125,31 +125,38 @@ if [ "$QUIET" = false ]; then
     echo_debug "Background: $BACKGROUND"
 fi
 
-# Change to test directory
-cd "$TEST_DIR"
+# Create pb_data directory if it doesn't exist (unless we're resetting)
+if [ "$RESET_DB" = false ]; then
+    mkdir -p "$TEST_DIR/pb_data"
+fi
 
-# Prepare command
-PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http="${TEST_HOST}:${TEST_PORT}")
+# Prepare command with explicit data directory
+PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http="${TEST_HOST}:${TEST_PORT}" --dev=false --dir="$TEST_DIR/pb_data")
 
 if [ "$BACKGROUND" = true ]; then
     # Run in background
     if [ "$QUIET" = false ]; then
         echo_info "PocketBase Test Server starting in background at http://${TEST_HOST}:${TEST_PORT}"
         echo_info "Admin UI will be available at http://${TEST_HOST}:${TEST_PORT}/_/"
-        echo_info "PID will be saved to ${TEST_DIR}/pocketbase.pid"
+        echo_info "PID will be saved to ${PROJECT_DIR}/test/pocketbase.pid"
+        echo_info "Logs will be written to ${TEST_DIR}/pocketbase.log"
     fi
     
+    # Create log file for background mode
+    LOG_FILE="$TEST_DIR/pocketbase.log"
+    
     if [ "$QUIET" = true ]; then
-        "${PB_CMD[@]}" >/dev/null 2>&1 &
+        "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
     else
-        "${PB_CMD[@]}" &
+        "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
     fi
     
     PB_PID=$!
-    echo $PB_PID > "$TEST_DIR/pocketbase.pid"
+    echo $PB_PID > "$PROJECT_DIR/test/pocketbase.pid"
     
     if [ "$QUIET" = false ]; then
         echo_info "PocketBase Test Server started with PID: $PB_PID"
+        echo_info "To view logs: tail -f ${LOG_FILE}"
     fi
 else
     # Run in foreground

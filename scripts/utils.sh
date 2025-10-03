@@ -56,44 +56,34 @@ get_pb_version() {
     echo "0.30.0"
 }
 
-# Load environment variables from environment-specific files
+# Set environment variables with hardcoded values per environment
 load_env() {
     local environment="$1"
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
-    local project_dir
     
-    # Find project root by looking for .env.example or pb.sh
-    project_dir="$script_dir"
-    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.env.example" ] && [ ! -f "$project_dir/pb.sh" ]; do
-        project_dir="$(dirname "$project_dir")"
-    done
-    
-    if [ "$project_dir" = "/" ]; then
-        echo_error "Could not find project root directory"
-        exit 1
-    fi
-    
-    # Load environment-specific configuration
-    if [ -n "$environment" ]; then
-        local env_file="$project_dir/.env.$environment"
-        if [ -f "$env_file" ]; then
-            echo_debug "Loading $environment environment from $env_file"
-            set -a
-            source "$env_file"
-            set +a
-        else
-            echo_warn "No .$environment environment file found at $env_file"
-            echo_info "Create .env.$environment with environment-specific configuration"
-        fi
-    fi
-    
-    # Set defaults if not provided
-    export ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
-    export ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123456}"
-    export USER_EMAIL="${USER_EMAIL:-user@example.com}"
-    export USER_PASSWORD="${USER_PASSWORD:-userpass123}"
-    export PORT="${PORT:-8090}"
-    export PB_HOST="${PB_HOST:-127.0.0.1}"
+    # Set environment-specific values
+    case "$environment" in
+        dev)
+            export PORT="8090"
+            export PB_HOST="127.0.0.1"
+            # Fallback user credentials (used only if no seed file)
+            export USER_EMAIL="dev-user@example.com"
+            export USER_PASSWORD="devpass123"
+            ;;
+        test)
+            export PORT="8091"
+            export PB_HOST="127.0.0.1"
+            # Fallback user credentials (used only if no seed file)
+            export USER_EMAIL="test-user@example.com"
+            export USER_PASSWORD="test-pass123"
+            ;;
+        *)
+            # Default values (for when no environment specified)
+            export PORT="8090"
+            export PB_HOST="127.0.0.1"
+            export USER_EMAIL="user@example.com"
+            export USER_PASSWORD="userpass123"
+            ;;
+    esac
     
     # Get PB version from .pb-version file
     export PB_VERSION="$(get_pb_version)"
@@ -101,11 +91,11 @@ load_env() {
 
 # Get project directory
 get_project_dir() {
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local project_dir="$script_dir"
     
-    # Find project root by looking for .env.example or pb.sh script
-    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.env.example" ] && [ ! -f "$project_dir/pb.sh" ]; do
+    # Find project root by looking for pb.sh script
+    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/pb.sh" ]; do
         project_dir="$(dirname "$project_dir")"
     done
     
@@ -258,5 +248,109 @@ version_less_than() {
         return 0  # v1 < v2
     else
         return 1  # v1 >= v2
+    fi
+}
+
+# Setup admin user using PocketBase CLI (works without server running)
+# Reads admin credentials from JSON seed file, falls back to hardcoded values
+setup_admin_user() {
+    local environment="$1"
+    local quiet="${2:-false}"
+    
+    if [ "$environment" != "dev" ] && [ "$environment" != "test" ]; then
+        echo_error "Invalid environment: $environment. Use 'dev' or 'test'"
+        return 1
+    fi
+    
+    local project_dir="$(get_project_dir)"
+    local seed_file="$project_dir/$environment/${environment}-users.json"
+    
+    # Try to read admin credentials from seed file first
+    local admin_email admin_password
+    if [ -f "$seed_file" ] && command -v jq >/dev/null 2>&1; then
+        local seed_admin_email=$(jq -r '.admin.email // empty' "$seed_file" 2>/dev/null)
+        local seed_admin_password=$(jq -r '.admin.password // empty' "$seed_file" 2>/dev/null)
+        
+        if [ -n "$seed_admin_email" ] && [ -n "$seed_admin_password" ]; then
+            admin_email="$seed_admin_email"
+            admin_password="$seed_admin_password"
+            if [ "$quiet" = false ]; then
+                echo_debug "Admin credentials loaded from seed file: $seed_file"
+            fi
+        else
+            if [ "$quiet" = false ]; then
+                echo_warn "Seed file found but missing admin credentials, using fallback"
+            fi
+        fi
+    fi
+    
+    # Set hardcoded fallback admin credentials if not loaded from seed file
+    if [ -z "$admin_email" ] || [ -z "$admin_password" ]; then
+        case "$environment" in
+            dev)
+                admin_email="admin@example.com"
+                admin_password="admin123456"
+                ;;
+            test)
+                admin_email="test-admin@example.com"
+                admin_password="test-admin123"
+                ;;
+        esac
+        if [ "$quiet" = false ]; then
+            echo_debug "Using hardcoded fallback admin credentials"
+        fi
+    fi
+    
+    local env_dir="$project_dir/$environment"
+    local pb_binary
+    
+    # Check if PocketBase binary exists
+    if ! pb_binary=$(check_pocketbase_binary); then
+        return 1
+    fi
+    
+    # Create environment directory if it doesn't exist
+    mkdir -p "$env_dir/pb_data"
+    
+    # Check if admin already exists by trying to create with --upsert flag
+    if [ "$quiet" = false ]; then
+        case $environment in
+            dev)
+                echo_info "[DEV] Setting up admin user: $admin_email"
+                ;;
+            test)
+                echo_info "[TEST] Setting up admin user: $admin_email"
+                ;;
+        esac
+    fi
+    
+    # Use 'superuser upsert' to create or update the admin user
+    # This command works even when the server isn't running
+    local result
+    result=$(cd "$env_dir" && "$pb_binary" superuser upsert "$admin_email" "$admin_password" --dir="$env_dir/pb_data" 2>&1)
+    local exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+        if [ "$quiet" = false ]; then
+            case $environment in
+                dev)
+                    echo_success "[DEV] Admin user ready: $admin_email"
+                    ;;
+                test)
+                    echo_success "[TEST] Admin user ready: $admin_email"
+                    ;;
+            esac
+        fi
+        return 0
+    else
+        case $environment in
+            dev)
+                echo_error "[DEV] Failed to setup admin user: $result"
+                ;;
+            test)
+                echo_error "[TEST] Failed to setup admin user: $result"
+                ;;
+        esac
+        return 1
     fi
 }
