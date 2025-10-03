@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# PocketBase User Setup Script
-# Creates admin and users from {environment}-users.json seed files
+# PocketBase User Seeding Script
+# Creates regular users from {environment}-users.json seed files
+# Requires admin user to already exist (run setup first)
 
 set -e
 
@@ -26,10 +27,10 @@ show_help() {
     echo "  test    Seed users for test environment (reads test/test-users.json)"
     echo ""
     echo "Behavior:"
-    echo "  - Reads {environment}/{environment}-users.json seed file"
-    echo "  - Creates admin user from seed file"
-    echo "  - Creates all users listed in seed file"
-    echo "  - Falls back to .env.{environment} if seed file missing"
+    echo "  - Requires admin user to already exist (run setup first)"
+    echo "  - Requires {environment}/{environment}-users.json seed file"
+    echo "  - Creates only regular users listed in seed file"
+    echo "  - Uses admin credentials from seed file for authentication"
     echo "  - Requires 'jq' command to be installed"
     echo ""
     echo "Options:"
@@ -109,51 +110,27 @@ fi
 PROJECT_DIR="$(get_project_dir)"
 SEED_FILE="$PROJECT_DIR/$ENVIRONMENT/${ENVIRONMENT}-users.json"
 
-if [ -f "$SEED_FILE" ]; then
-    echo_info "Using seed file: $SEED_FILE"
-    # Read admin credentials from seed file
-    SEED_ADMIN_EMAIL=$(jq -r '.admin.email // empty' "$SEED_FILE")
-    SEED_ADMIN_PASSWORD=$(jq -r '.admin.password // empty' "$SEED_FILE")
-    
-    if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
-        ADMIN_EMAIL="$SEED_ADMIN_EMAIL"
-        ADMIN_PASSWORD="$SEED_ADMIN_PASSWORD"
-        echo_info "Admin credentials loaded from seed file"
-    else
-        echo_warn "Seed file missing admin credentials; using .env values"
-    fi
-else
-    echo_warn "No seed file found at $SEED_FILE; using fallback mode with .env credentials"
+if [ ! -f "$SEED_FILE" ]; then
+    echo_error "Seed file not found: $SEED_FILE"
+    echo_info "Create a seed file with admin and user credentials to proceed."
+    exit 1
 fi
 
-# Function to create admin user using PocketBase CLI (fallback)
-create_admin_user_fallback() {
-    echo_info "Creating admin user: $ADMIN_EMAIL (fallback mode)"
-    
-    # Since we can't check superusers without authentication, just try to create via CLI
-    # This is the safer fallback approach
-    local project_dir="$(get_project_dir)"
-    local env_dir="$project_dir/$ENVIRONMENT"
-    local pb_binary
-    
-    # Check if PocketBase binary exists
-    if ! pb_binary=$(check_pocketbase_binary); then
-        return 1
-    fi
-    
-    # Use 'superuser upsert' to create or update the admin user
-    local result
-    result=$(cd "$env_dir" && "$pb_binary" superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASSWORD" --dir="$env_dir/pb_data" 2>&1)
-    local exit_code=$?
-    
-    if [ $exit_code -eq 0 ]; then
-        echo_success "Admin user ready: $ADMIN_EMAIL (fallback)"
-        return 0
-    else
-        echo_error "Failed to create admin user via CLI: $result"
-        return 1
-    fi
-}
+echo_info "Using seed file: $SEED_FILE"
+
+# Read admin credentials from seed file for authentication
+SEED_ADMIN_EMAIL=$(jq -r '.admin.email // empty' "$SEED_FILE")
+SEED_ADMIN_PASSWORD=$(jq -r '.admin.password // empty' "$SEED_FILE")
+
+if [ -z "$SEED_ADMIN_EMAIL" ] || [ -z "$SEED_ADMIN_PASSWORD" ]; then
+    echo_error "Seed file missing admin credentials (admin.email and admin.password required)"
+    exit 1
+fi
+
+ADMIN_EMAIL="$SEED_ADMIN_EMAIL"
+ADMIN_PASSWORD="$SEED_ADMIN_PASSWORD"
+echo_info "Admin credentials loaded from seed file"
+
 
 # Function to authenticate as admin and get token
 authenticate_admin() {
@@ -265,6 +242,7 @@ create_single_user() {
 
         if echo "$USER_RESPONSE" | grep -q '"id"'; then
             echo_success "User created: $email"
+            echo_info "User: $email / $password"
         else
             echo_warn "User creation failed for $email: $USER_RESPONSE"
         fi
@@ -292,36 +270,6 @@ create_users_from_seed() {
     fi
 }
 
-# Function to create admin user from seed file using CLI
-create_admin_from_seed() {
-    echo_info "Creating admin user from seed file: $ADMIN_EMAIL"
-    
-    local project_dir="$(get_project_dir)"
-    local env_dir="$project_dir/$ENVIRONMENT"
-    local pb_binary
-    
-    # Check if PocketBase binary exists
-    if ! pb_binary=$(check_pocketbase_binary); then
-        return 1
-    fi
-    
-    # Create environment directory if it doesn't exist
-    mkdir -p "$env_dir/pb_data"
-    
-    # Use 'superuser upsert' to create or update the admin user
-    # This command works even when the server is running
-    local result
-    result=$(cd "$env_dir" && "$pb_binary" superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASSWORD" --dir="$env_dir/pb_data" 2>&1)
-    local exit_code=$?
-    
-    if [ $exit_code -eq 0 ]; then
-        echo_success "Admin user ready: $ADMIN_EMAIL"
-        return 0
-    else
-        echo_error "Failed to create admin user: $result"
-        return 1
-    fi
-}
 
 # Main execution
 main() {
@@ -333,22 +281,12 @@ main() {
         exit 1
     fi
 
-    # Create admin user based on mode
-    if [ -f "$SEED_FILE" ]; then
-        # Create admin from seed file
-        if ! create_admin_from_seed; then
-            echo_error "Failed to create admin from seed file"
-            exit 1
-        fi
-    else
-        # Fallback mode - create admin via API
-        create_admin_user_fallback
-    fi
-
-    # Authenticate as admin
+    # Authenticate as admin (admin must already exist from setup)
     if ! authenticate_admin; then
         echo_error "Failed to authenticate as admin."
-        echo_info "Make sure admin user exists with correct credentials."
+        echo_info "Admin user must exist before seeding users. Run setup first:"
+        echo_info "For dev: ./pb.sh dev setup"
+        echo_info "For test: ./pb.sh test setup"
         exit 1
     fi
 
@@ -358,15 +296,9 @@ main() {
         exit 1
     fi
 
-    # Create users based on mode
-    if [ -f "$SEED_FILE" ]; then
-        create_users_from_seed
-        echo_success "Users created from seed file: $SEED_FILE"
-    else
-        # Fallback to single test user
-        create_single_user "$USER_EMAIL" "$USER_PASSWORD" "Test User"
-        echo_success "Fallback test user created: $USER_EMAIL"
-    fi
+    # Create users from seed file
+    create_users_from_seed
+    echo_success "Users created from seed file: $SEED_FILE"
 
     echo_info "Admin UI: ${PB_URL}/_/"
 }
