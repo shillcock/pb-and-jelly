@@ -6,7 +6,12 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/utils.sh"
+
+# Load environment variables (including PB_VERSION)
+load_env
+
+PROJECT_DIR="$(get_project_dir)"
 BIN_DIR="$PROJECT_DIR/bin"
 PB_BINARY="$BIN_DIR/pocketbase"
 
@@ -32,12 +37,19 @@ echo_error() {
 if [ -f "$PB_BINARY" ]; then
     echo_info "PocketBase already exists at $PB_BINARY"
     # Check version
-    VERSION=$("$PB_BINARY" --version 2>/dev/null || echo "unknown")
-    echo_info "Current version: $VERSION"
-    read -p "Do you want to update to the latest version? (y/N): " -n 1 -r
+    CURRENT_VERSION=$("$PB_BINARY" --version 2>/dev/null | head -1 || echo "unknown")
+    echo_info "Current version: $CURRENT_VERSION"
+    echo_info "Target version: v$PB_VERSION"
+    
+    if echo "$CURRENT_VERSION" | grep -q "$PB_VERSION"; then
+        echo_info "Target version v$PB_VERSION is already installed"
+        exit 0
+    fi
+    
+    read -p "Do you want to install version v$PB_VERSION? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo_info "Skipping download"
+        echo_info "Skipping installation"
         exit 0
     fi
 fi
@@ -59,26 +71,23 @@ esac
 
 echo_info "Detected architecture: $ARCH"
 
-# Get latest release info from GitHub API
-echo_info "Fetching latest PocketBase release information..."
-RELEASE_INFO=$(curl -s https://api.github.com/repos/pocketbase/pocketbase/releases/latest)
+# Use pinned version from environment
+VERSION="v$PB_VERSION"
+echo_info "Installing pinned version: $VERSION"
 
-if [ $? -ne 0 ]; then
-    echo_error "Failed to fetch release information"
-    exit 1
-fi
-
-# Extract version and download URL
-VERSION=$(echo "$RELEASE_INFO" | grep -o '"tag_name": "v[^"]*' | cut -d'"' -f4)
-DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "https://github.com/pocketbase/pocketbase/releases/download/${VERSION}/pocketbase_[^\"]*_darwin_${ARCH}\.zip" | head -1)
-
-if [ -z "$VERSION" ] || [ -z "$DOWNLOAD_URL" ]; then
-    echo_error "Could not parse release information"
-    exit 1
-fi
-
-echo_info "Latest version: $VERSION"
+# Construct download URL for specific version
+DOWNLOAD_URL="https://github.com/pocketbase/pocketbase/releases/download/${VERSION}/pocketbase_${PB_VERSION}_darwin_${ARCH}.zip"
 echo_info "Download URL: $DOWNLOAD_URL"
+
+# Verify the release exists by checking the download URL
+echo_info "Verifying release exists..."
+HTTP_STATUS=$(curl -s -I "$DOWNLOAD_URL" | head -n 1 | cut -d' ' -f2)
+if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "302" ]; then
+    echo_error "Version $VERSION not found or download URL invalid"
+    echo_error "Please check if version $PB_VERSION exists at: https://github.com/pocketbase/pocketbase/releases"
+    exit 1
+fi
+echo_info "Release verified"
 
 # Create bin directory if it doesn't exist
 mkdir -p "$BIN_DIR"

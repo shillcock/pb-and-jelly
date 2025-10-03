@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
 # Load environment variables
-load_env
+load_env "test"
 
 PROJECT_DIR="$(get_project_dir)"
 TEST_DIR="$PROJECT_DIR/test"
@@ -24,7 +24,7 @@ PB_BINARY=$(check_pocketbase_binary)
 mkdir -p "$TEST_DIR"
 
 # Use environment variables for defaults
-TEST_PORT="$TEST_PORT"
+TEST_PORT="$PORT"
 TEST_HOST="$PB_HOST"
 
 # Override echo functions for test context

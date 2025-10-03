@@ -6,7 +6,7 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
 
 - **Dual Environment Support**: Separate `dev` and `test` environments with isolated databases
 - **Automatic Setup**: Download PocketBase, create admin users, and set up test users automatically
-- **Environment Configuration**: Use `.env.local` for customizable credentials and ports
+- **Environment-Specific Configuration**: Use `.env.dev` and `.env.test` for environment-specific settings, `.env.local` for global overrides
 - **Unified CLI**: Single command interface for all operations
 - **Background Testing**: Run test servers in background for automated testing
 - **Easy Cleanup**: Clean environments with confirmation prompts
@@ -19,10 +19,11 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
    cd pb-tools
    ```
 
-2. **Configure environment:**
+2. **Configure environments:**
    ```bash
+   # Environment-specific configs are ready to use (.env.dev, .env.test)
+   # Copy .env.example to .env.local for global overrides (optional)
    cp .env.example .env.local
-   # Edit .env.local with your preferred credentials
    ```
 
 3. **Install PocketBase:**
@@ -46,26 +47,74 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
 
 ## Configuration
 
-### Environment Variables
+### Environment-Specific Configuration
 
-Copy `.env.example` to `.env.local` and customize:
+This toolkit uses separate configuration files for different environments:
 
+**Environment-Specific Files (tracked in git):**
+- `.env.dev` - Development environment settings (port 8090)
+- `.env.test` - Test environment settings (port 8091)
+
+**Example `.env.dev`:**
 ```bash
-# Admin user credentials
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=admin123456
-
-# Test user credentials  
-TEST_USER_EMAIL=test@example.com
-TEST_USER_PASSWORD=testpass123
-
-# Server configuration
-DEV_PORT=8090
-TEST_PORT=8091
+# Development environment configuration
+ADMIN_EMAIL=dev-admin@example.com
+ADMIN_PASSWORD=dev-admin-password
+USER_EMAIL=dev-user@example.com
+USER_PASSWORD=dev-user-password
+PORT=8090
 PB_HOST=127.0.0.1
 ```
 
-**Note:** `.env.local` is gitignored to keep your credentials secure.
+**Example `.env.test`:**
+```bash
+# Test environment configuration
+ADMIN_EMAIL=test-admin@example.com
+ADMIN_PASSWORD=test-admin-password
+USER_EMAIL=test-user@example.com
+USER_PASSWORD=test-user-password
+PORT=8091
+PB_HOST=127.0.0.1
+```
+
+### Global Configuration
+
+**`.env.local` (gitignored) - Optional global overrides:**
+```bash
+# Global overrides (uncomment to override environment-specific settings)
+# PB_HOST=0.0.0.0
+# ADMIN_EMAIL=custom-admin@example.com
+```
+
+**Configuration Priority:**
+1. Command-line arguments (highest priority)
+2. `.env.local` global overrides
+3. Environment-specific files (`.env.dev`, `.env.test`)
+4. Built-in defaults (lowest priority)
+
+**Version Management:**
+- PocketBase version is managed via `.pb-version` file (tracked in git)
+- Similar to `.node-version`, `.python-version`, etc.
+
+### Version Pinning
+
+For CI/CD reliability, this toolkit uses a `.pb-version` file (similar to `.node-version`) to pin PocketBase to a specific version:
+
+- **`.pb-version`**: Contains the PocketBase version (e.g., `0.30.1`)
+- **Install behavior**: Always installs the pinned version, never "latest"
+- **Upgrade management**: Use `./pb.sh upgrade` to see available versions and upgrade guidance
+- **Team consistency**: Everyone gets the same version when they clone the repo
+
+**Benefits:**
+- Reproducible builds in CI/CD pipelines
+- No unexpected API changes from automatic updates
+- Controlled upgrade process
+- Follows standard version pinning conventions (like `.node-version`)
+
+**To upgrade:**
+1. Run `./pb.sh upgrade` to see available versions
+2. Update the version number in `.pb-version`
+3. Run `./pb.sh install` to install the new version
 
 ## Commands
 
@@ -85,6 +134,7 @@ PB_HOST=127.0.0.1
 | Command | Description | Example |
 |---------|-------------|---------|
 | `install` | Download and install PocketBase | `./pb.sh install` |
+| `upgrade` | Show available versions and upgrade guidance | `./pb.sh upgrade` |
 | `status` | Show status of all environments | `./pb.sh status` |
 | `stop-all` | Stop all running servers | `./pb.sh stop-all` |
 | `clean-all` | Clean all environment data | `./pb.sh clean-all --force` |

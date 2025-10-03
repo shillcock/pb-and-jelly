@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
 # Load environment variables
-load_env
+load_env "dev"
 
 PROJECT_DIR="$(get_project_dir)"
 DEV_DIR="$PROJECT_DIR/dev"
@@ -24,7 +24,7 @@ PB_BINARY=$(check_pocketbase_binary)
 mkdir -p "$DEV_DIR"
 
 # Use environment variables for defaults
-DEV_PORT="$DEV_PORT"
+DEV_PORT="$PORT"
 DEV_HOST="$PB_HOST"
 
 # Override echo functions for dev context

@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
-# Load environment variables
+# Load environment variables (will be overridden when environment is parsed)
 load_env
 
 # Override with command line values
@@ -34,8 +34,8 @@ show_help() {
     echo "  --port PORT             PocketBase port (overrides environment default)"
     echo "  --admin-email EMAIL     Admin email (default: admin@example.com)"
     echo "  --admin-password PASS   Admin password (default: admin123456)"
-    echo "  --user-email EMAIL      Test user email (default: test@example.com)"
-    echo "  --user-password PASS    Test user password (default: testpass123)"
+    echo "  --user-email EMAIL      Test user email (default: user@example.com)"
+    echo "  --user-password PASS    Test user password (default: userpass123)"
     echo "  --help, -h              Show this help message"
     echo ""
     echo "Examples:"
@@ -46,9 +46,9 @@ show_help() {
 }
 
 # Parse command line arguments
-if [ $# -eq 0 ]; then
+if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     show_help
-    exit 1
+    exit 0
 fi
 
 ENVIRONMENT=$1
@@ -96,19 +96,19 @@ done
 [ -n "$PB_HOST_OVERRIDE" ] && PB_HOST="$PB_HOST_OVERRIDE"
 [ -n "$ADMIN_EMAIL_OVERRIDE" ] && ADMIN_EMAIL="$ADMIN_EMAIL_OVERRIDE"
 [ -n "$ADMIN_PASSWORD_OVERRIDE" ] && ADMIN_PASSWORD="$ADMIN_PASSWORD_OVERRIDE"
-[ -n "$TEST_USER_EMAIL_OVERRIDE" ] && TEST_USER_EMAIL="$TEST_USER_EMAIL_OVERRIDE"
-[ -n "$TEST_USER_PASSWORD_OVERRIDE" ] && TEST_USER_PASSWORD="$TEST_USER_PASSWORD_OVERRIDE"
+[ -n "$TEST_USER_EMAIL_OVERRIDE" ] && USER_EMAIL="$TEST_USER_EMAIL_OVERRIDE"
+[ -n "$TEST_USER_PASSWORD_OVERRIDE" ] && USER_PASSWORD="$TEST_USER_PASSWORD_OVERRIDE"
+
+# Load environment-specific configuration now that we know the environment
+load_env "$ENVIRONMENT"
 
 # Set port based on environment if not overridden
 if [ -n "$PB_PORT_OVERRIDE" ]; then
     PB_PORT="$PB_PORT_OVERRIDE"
 else
     case $ENVIRONMENT in
-        dev)
-            PB_PORT="$DEV_PORT"
-            ;;
-        test)
-            PB_PORT="$TEST_PORT"
+        dev|test)
+            PB_PORT="$PORT"
             ;;
         *)
             echo_error "Invalid environment: $ENVIRONMENT. Use 'dev' or 'test'"
@@ -239,10 +239,10 @@ setup_users_collection() {
 
 # Function to create test user
 create_test_user() {
-    echo_info "Creating test user: $TEST_USER_EMAIL"
+    echo_info "Creating test user: $USER_EMAIL"
     
     # Check if test user already exists
-    USER_CHECK=$(curl -s "$PB_URL/api/collections/users/records?filter=(email='$TEST_USER_EMAIL')" \
+    USER_CHECK=$(curl -s "$PB_URL/api/collections/users/records?filter=(email='$USER_EMAIL')" \
         -H "Authorization: Bearer $ADMIN_TOKEN")
     
     if echo "$USER_CHECK" | grep -q '"totalItems":0'; then
@@ -251,9 +251,9 @@ create_test_user() {
             -H "Authorization: Bearer $ADMIN_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{
-                \"email\": \"$TEST_USER_EMAIL\",
-                \"password\": \"$TEST_USER_PASSWORD\",
-                \"passwordConfirm\": \"$TEST_USER_PASSWORD\",
+                \"email\": \"$USER_EMAIL\",
+                \"password\": \"$USER_PASSWORD\",
+                \"passwordConfirm\": \"$USER_PASSWORD\",
                 \"name\": \"Test User\"
             }")
         
@@ -297,7 +297,7 @@ main() {
     
     echo_info "User setup complete!"
     echo_info "Admin: $ADMIN_EMAIL / $ADMIN_PASSWORD"
-    echo_info "Test User: $TEST_USER_EMAIL / $TEST_USER_PASSWORD"
+    echo_info "Test User: $USER_EMAIL / $USER_PASSWORD"
     echo_info "Admin UI: ${PB_URL}/_/"
 }
 

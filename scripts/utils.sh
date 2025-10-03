@@ -32,38 +32,80 @@ echo_success() {
     echo -e "${CYAN}[SUCCESS]${NC} $1"
 }
 
-# Load environment variables from .env.local
-load_env() {
+# Read PocketBase version from .pb-version file
+get_pb_version() {
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
-    local project_dir
+    local project_dir="$script_dir"
     
-    # Find project root by looking for .env.local
-    project_dir="$script_dir"
-    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.env.local" ]; do
+    # Find project root by looking for .pb-version or pb.sh
+    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.pb-version" ] && [ ! -f "$project_dir/pb.sh" ]; do
         project_dir="$(dirname "$project_dir")"
     done
     
-    local env_file="$project_dir/.env.local"
+    local version_file="$project_dir/.pb-version"
+    if [ -f "$version_file" ]; then
+        # Read version and trim whitespace
+        local version=$(cat "$version_file" | tr -d '\n\r\t ' | head -1)
+        if [ -n "$version" ]; then
+            echo "$version"
+            return 0
+        fi
+    fi
     
-    if [ -f "$env_file" ]; then
-        echo_debug "Loading environment from $env_file"
-        # Export variables from .env.local, skipping comments and empty lines
+    # Fallback to default version
+    echo "0.30.0"
+}
+
+# Load environment variables from environment-specific files
+load_env() {
+    local environment="$1"
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
+    local project_dir
+    
+    # Find project root by looking for .env.example or pb.sh
+    project_dir="$script_dir"
+    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.env.example" ] && [ ! -f "$project_dir/pb.sh" ]; do
+        project_dir="$(dirname "$project_dir")"
+    done
+    
+    if [ "$project_dir" = "/" ]; then
+        echo_error "Could not find project root directory"
+        exit 1
+    fi
+    
+    # Load global configuration from .env.local first (for things like PB_VERSION)
+    local global_env="$project_dir/.env.local"
+    if [ -f "$global_env" ]; then
+        echo_debug "Loading global environment from $global_env"
         set -a
-        source "$env_file"
+        source "$global_env"
         set +a
-    else
-        echo_warn "No .env.local file found. Using defaults."
-        echo_info "Copy .env.example to .env.local and customize it."
+    fi
+    
+    # Load environment-specific configuration
+    if [ -n "$environment" ]; then
+        local env_file="$project_dir/.env.$environment"
+        if [ -f "$env_file" ]; then
+            echo_debug "Loading $environment environment from $env_file"
+            set -a
+            source "$env_file"
+            set +a
+        else
+            echo_warn "No .$environment environment file found at $env_file"
+            echo_info "Create .env.$environment with environment-specific configuration"
+        fi
     fi
     
     # Set defaults if not provided
     export ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
     export ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123456}"
-    export TEST_USER_EMAIL="${TEST_USER_EMAIL:-test@example.com}"
-    export TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-testpass123}"
-    export DEV_PORT="${DEV_PORT:-8090}"
-    export TEST_PORT="${TEST_PORT:-8091}"
+    export USER_EMAIL="${USER_EMAIL:-user@example.com}"
+    export USER_PASSWORD="${USER_PASSWORD:-userpass123}"
+    export PORT="${PORT:-8090}"
     export PB_HOST="${PB_HOST:-127.0.0.1}"
+    
+    # Get PB version from .pb-version file
+    export PB_VERSION="$(get_pb_version)"
 }
 
 # Get project directory
@@ -184,5 +226,46 @@ stop_pocketbase() {
     else
         echo_warn "No running PocketBase $environment server found"
         return 1
+    fi
+}
+
+# Fetch available PocketBase versions from GitHub API
+fetch_available_versions() {
+    local max_versions="${1:-10}"
+    
+    # Get releases from GitHub API (suppress debug during this call)
+    local releases=$(curl -s "https://api.github.com/repos/pocketbase/pocketbase/releases?per_page=$max_versions")
+    
+    if [ $? -ne 0 ]; then
+        echo_error "Failed to fetch version information from GitHub" >&2
+        return 1
+    fi
+    
+    # Extract version numbers (remove 'v' prefix) - output to stdout only
+    echo "$releases" | grep '"tag_name"' | cut -d'"' -f4 | sed 's/^v//'
+}
+
+# Get current installed PocketBase version
+get_current_version() {
+    local project_dir="$(get_project_dir)"
+    local pb_binary="$project_dir/bin/pocketbase"
+    
+    if [ -f "$pb_binary" ]; then
+        "$pb_binary" --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1
+    else
+        echo "not_installed"
+    fi
+}
+
+# Compare version strings (returns 0 if v1 < v2, 1 if v1 >= v2)
+version_less_than() {
+    local v1="$1"
+    local v2="$2"
+    
+    # Use sort -V for version sorting
+    if [ "$(printf '%s\n%s' "$v1" "$v2" | sort -V | head -n1)" = "$v1" ] && [ "$v1" != "$v2" ]; then
+        return 0  # v1 < v2
+    else
+        return 1  # v1 >= v2
     fi
 }

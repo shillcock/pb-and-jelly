@@ -27,6 +27,7 @@ show_help() {
     echo ""
     echo "Global Commands:"
     echo "  install             Download and install PocketBase binary"
+    echo "  upgrade             Show available versions and upgrade PocketBase"
     echo "  status              Show status of all environments"
     echo "  stop-all            Stop all running servers"
     echo "  clean-all           Clean all environment data"
@@ -36,6 +37,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 install                      # Download PocketBase"
+    echo "  $0 upgrade                      # Show available versions and upgrade"
     echo "  $0 dev start                    # Start dev server"
     echo "  $0 test start --background      # Start test server in background"
     echo "  $0 dev setup-users              # Setup users in dev environment"
@@ -45,15 +47,13 @@ show_help() {
     echo "  $0 test create-user             # Create user in test environment"
     echo ""
     echo "Environment Configuration:"
-    echo "  Configuration is loaded from .env.local"
-    echo "  Copy .env.example to .env.local and customize"
+    echo "  Environment-specific config: .env.dev, .env.test"
+    echo "  Global overrides: .env.local (copy from .env.example)"
     echo ""
-    echo "Current Configuration:"
-    echo "  Admin Email: $ADMIN_EMAIL"
-    echo "  Test User Email: $TEST_USER_EMAIL"
-    echo "  Dev Port: $DEV_PORT"
-    echo "  Test Port: $TEST_PORT"
+    echo "Current Global Configuration:"
     echo "  Host: $PB_HOST"
+    echo "  PB Version: $PB_VERSION (from .pb-version file)"
+    echo "  (See .env.dev/.env.test for environment-specific settings)"
 }
 
 show_status() {
@@ -62,14 +62,18 @@ show_status() {
     
     local project_dir="$(get_project_dir)"
     
+    # Load dev environment to get dev port
+    load_env "dev"
+    local dev_port="$PORT"
+    
     # Check dev server
-    echo -n "Development Server (port $DEV_PORT): "
+    echo -n "Development Server (port $dev_port): "
     local dev_pid=$(get_pid_from_file "$project_dir/dev/pocketbase.pid" 2>/dev/null || echo "")
     if [ -n "$dev_pid" ]; then
         echo -e "${GREEN}Running${NC} (PID: $dev_pid)"
-        echo "  URL: http://$PB_HOST:$DEV_PORT"
-        echo "  Admin UI: http://$PB_HOST:$DEV_PORT/_/"
-    elif check_port "$DEV_PORT"; then
+        echo "  URL: http://$PB_HOST:$dev_port"
+        echo "  Admin UI: http://$PB_HOST:$dev_port/_/"
+    elif check_port "$dev_port"; then
         echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
     else
         echo -e "${RED}Stopped${NC}"
@@ -77,14 +81,18 @@ show_status() {
     
     echo ""
     
+    # Load test environment to get test port
+    load_env "test"
+    local test_port="$PORT"
+    
     # Check test server
-    echo -n "Test Server (port $TEST_PORT): "
+    echo -n "Test Server (port $test_port): "
     local test_pid=$(get_pid_from_file "$project_dir/test/pocketbase.pid" 2>/dev/null || echo "")
     if [ -n "$test_pid" ]; then
         echo -e "${GREEN}Running${NC} (PID: $test_pid)"
-        echo "  URL: http://$PB_HOST:$TEST_PORT"
-        echo "  Admin UI: http://$PB_HOST:$TEST_PORT/_/"
-    elif check_port "$TEST_PORT"; then
+        echo "  URL: http://$PB_HOST:$test_port"
+        echo "  Admin UI: http://$PB_HOST:$test_port/_/"
+    elif check_port "$test_port"; then
         echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
     else
         echo -e "${RED}Stopped${NC}"
@@ -114,15 +122,16 @@ show_env_status() {
         exit 1
     fi
     
-    local port
+    # Load environment-specific configuration
+    load_env "$environment"
+    local port="$PORT"
+    
     local env_name
     case $environment in
         dev)
-            port="$DEV_PORT"
             env_name="Development"
             ;;
         test)
-            port="$TEST_PORT"
             env_name="Test"
             ;;
     esac
@@ -162,11 +171,9 @@ create_user_interactive() {
         exit 1
     fi
     
-    local port
-    case $environment in
-        dev) port="$DEV_PORT" ;;
-        test) port="$TEST_PORT" ;;
-    esac
+    # Load environment-specific configuration
+    load_env "$environment"
+    local port="$PORT"
     
     local pb_url="http://$PB_HOST:$port"
     
@@ -243,6 +250,76 @@ create_user_interactive() {
     fi
 }
 
+show_upgrade_options() {
+    echo_info "PocketBase Version Management"
+    echo ""
+    
+    # Get current version
+    local current_version=$(get_current_version)
+    local pinned_version="$PB_VERSION"
+    
+    echo "Current Configuration:"
+    if [ "$current_version" = "not_installed" ]; then
+        echo "  Installed Version: Not installed"
+    else
+        echo "  Installed Version: $current_version"
+    fi
+    echo "  Pinned Version: $pinned_version (from .pb-version file)"
+    echo ""
+    
+    # Fetch available versions
+    echo_info "Fetching available versions from GitHub..."
+    local versions=$(fetch_available_versions 15)
+    
+    if [ $? -ne 0 ] || [ -z "$versions" ]; then
+        echo_error "Failed to fetch version information"
+        return 1
+    fi
+    
+    echo "Available versions (showing last 15):"
+    local count=1
+    echo "$versions" | while read -r version; do
+        if [ -n "$version" ]; then
+            local status=""
+            if [ "$version" = "$pinned_version" ]; then
+                status=" (pinned)"
+            fi
+            if [ "$version" = "$current_version" ]; then
+                status="$status (installed)"
+            fi
+            echo "  $count. $version$status"
+            count=$((count + 1))
+        fi
+    done
+    
+    echo ""
+    echo "Upgrade Options:"
+    echo "  1. Update .pb-version file to pin a different version, then run './pb.sh install'"
+    echo "  2. Check latest releases: https://github.com/pocketbase/pocketbase/releases"
+    echo ""
+    
+    # Show upgrade recommendation
+    if [ "$current_version" != "not_installed" ] && [ "$current_version" != "$pinned_version" ]; then
+        if version_less_than "$current_version" "$pinned_version"; then
+            echo_warn "Your installed version ($current_version) is older than pinned version ($pinned_version)"
+            echo_info "Run './pb.sh install' to upgrade to the pinned version"
+        else
+            echo_warn "Your installed version ($current_version) is newer than pinned version ($pinned_version)"
+            echo_info "Consider updating the version in .pb-version file to match your installed version"
+        fi
+        echo ""
+    fi
+    
+    # Show latest version info
+    local latest_version=$(echo "$versions" | head -1)
+    if [ -n "$latest_version" ] && [ "$latest_version" != "$pinned_version" ]; then
+        if version_less_than "$pinned_version" "$latest_version"; then
+            echo_info "Latest version available: $latest_version"
+            echo_info "To upgrade: Update .pb-version to $latest_version, then run './pb.sh install'"
+        fi
+    fi
+}
+
 # Parse command line arguments
 if [ $# -eq 0 ]; then
     show_help
@@ -262,6 +339,9 @@ shift
 case $FIRST_ARG in
     install)
         exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
+        ;;
+    upgrade)
+        show_upgrade_options
         ;;
     status)
         show_status
@@ -339,7 +419,7 @@ case $FIRST_ARG in
     *)
         echo_error "Unknown command or environment: $FIRST_ARG"
         echo_info "Available environments: dev, test"
-        echo_info "Available global commands: install, status, stop-all, clean-all"
+        echo_info "Available global commands: install, upgrade, status, stop-all, clean-all"
         echo_info "Use '$0 --help' for more information"
         exit 1
         ;;
