@@ -39,7 +39,7 @@ echo ""
 
 # Test 1: Check if main scripts exist and are executable
 test_info "Checking script files..."
-for script in pb-cli scripts/pb-dev scripts/pb-test scripts/install-pocketbase.sh scripts/setup-users.sh scripts/clean.sh scripts/stop.sh; do
+for script in pb.sh scripts/pb-dev scripts/pb-test scripts/install-pocketbase.sh scripts/setup-users.sh scripts/clean.sh scripts/stop.sh; do
     if [ ! -f "$script" ]; then
         test_error "Script not found: $script"
     fi
@@ -63,14 +63,14 @@ test_success "Environment configuration files exist"
 
 # Test 3: Test CLI help
 test_info "Testing CLI help command..."
-if ! ./pb-cli --help > /dev/null; then
+if ! ./pb.sh --help > /dev/null; then
     test_error "CLI help command failed"
 fi
 test_success "CLI help command works"
 
 # Test 4: Test status command (should work even without PocketBase installed)
 test_info "Testing status command..."
-if ! ./pb-cli status > /dev/null; then
+if ! ./pb.sh status > /dev/null; then
     test_error "Status command failed"
 fi
 test_success "Status command works"
@@ -79,7 +79,7 @@ test_success "Status command works"
 test_info "Checking PocketBase installation..."
 if [ ! -f "bin/pocketbase" ]; then
     test_info "Installing PocketBase..."
-    if ! ./pb-cli install; then
+    if ! ./pb.sh install; then
         test_error "PocketBase installation failed"
     fi
 fi
@@ -87,19 +87,19 @@ test_success "PocketBase is installed"
 
 # Test 6: Clean up any existing processes first
 test_info "Cleaning up existing processes..."
-./pb-cli stop-all > /dev/null 2>&1 || true
-./pb-cli clean-all --force > /dev/null 2>&1 || true
+./pb.sh stop-all > /dev/null 2>&1 || true
+./pb.sh clean-all --force > /dev/null 2>&1 || true
 sleep 1
 
 # Test development server (background start and stop)
 test_info "Testing test server..."
-if ! ./pb-cli test start --background --quiet --reset; then
+if ! ./pb.sh test start --background --quiet --reset; then
     test_error "Failed to start test server"
 fi
 sleep 3
 
 # Check if server is running
-if ! ./pb-cli status | grep -q "Test Server.*Running"; then
+if ! ./pb.sh status | grep -q "Test Server.*Running"; then
     test_warn "Test server status check failed - might be a timing issue"
     # Try checking the port directly
     if lsof -i :8091 > /dev/null 2>&1; then
@@ -113,7 +113,7 @@ fi
 
 # Test 7: Test user setup
 test_info "Testing user setup..."
-if ! ./pb-cli test setup-users; then
+if ! ./pb.sh test setup-users; then
     test_warn "User setup might have failed, but this could be due to existing users"
 fi
 test_success "User setup completed (or users already exist)"
@@ -132,14 +132,14 @@ fi
 
 # Test 9: Test stop functionality
 test_info "Testing stop functionality..."
-if ! ./pb-cli test stop; then
+if ! ./pb.sh test stop; then
     test_error "Failed to stop test server"
 fi
 test_success "Test server stopped successfully"
 
 # Test 10: Test cleanup functionality
 test_info "Testing cleanup functionality..."
-if ! ./pb-cli test clean --force; then
+if ! ./pb.sh test clean --force; then
     test_error "Failed to clean test environment"
 fi
 test_success "Test environment cleaned successfully"
@@ -174,8 +174,8 @@ echo ""
 echo "Your PocketBase development environment is ready to use."
 echo ""
 echo "Quick start:"
-echo "  ./pb-cli dev start            # Start development server"
-echo "  ./pb-cli dev setup-users      # Set up users (in another terminal)"
-echo "  ./pb-cli status               # Check server status"
+echo "  ./pb.sh dev start            # Start development server"
+echo "  ./pb.sh dev setup-users      # Set up users (in another terminal)"
+echo "  ./pb.sh status               # Check server status"
 echo ""
 echo "For full documentation, see README.md"

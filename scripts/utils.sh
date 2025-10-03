@@ -71,8 +71,8 @@ get_project_dir() {
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
     local project_dir="$script_dir"
     
-    # Find project root by looking for .env.example or pb-cli script
-    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.env.example" ] && [ ! -f "$project_dir/pb-cli" ]; do
+    # Find project root by looking for .env.example or pb.sh script
+    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.env.example" ] && [ ! -f "$project_dir/pb.sh" ]; do
         project_dir="$(dirname "$project_dir")"
     done
     

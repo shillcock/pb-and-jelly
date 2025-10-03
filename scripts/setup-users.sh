@@ -272,8 +272,8 @@ main() {
     # Wait for PocketBase to be ready
     if ! wait_for_pocketbase; then
         echo_error "PocketBase is not running. Please start it first:"
-        echo_info "For dev: ./pb-cli dev start"
-        echo_info "For test: ./pb-cli test start"
+        echo_info "For dev: ./pb.sh dev start"
+        echo_info "For test: ./pb.sh test start"
         exit 1
     fi
     

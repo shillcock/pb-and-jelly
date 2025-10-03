@@ -3,8 +3,8 @@
 # PocketBase Development Environment Launcher
 # Launches PocketBase using the dev/ directory as working directory
 #
-# NOTE: Most users should use './pb-cli dev start' instead of running this directly.
-# This script is primarily used internally by pb-cli and for advanced/automation use cases.
+# NOTE: Most users should use './pb.sh dev start' instead of running this directly.
+# This script is primarily used internally by pb.sh and for advanced/automation use cases.
 
 set -e
 
