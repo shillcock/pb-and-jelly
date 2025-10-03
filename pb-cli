@@ -1,0 +1,239 @@
+#!/bin/bash
+
+# PocketBase CLI - Unified command-line interface
+# Orchestrates all PocketBase development and testing operations
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/scripts/utils.sh"
+
+# Load environment variables
+load_env
+
+show_help() {
+    echo "PocketBase Development CLI"
+    echo ""
+    echo "Usage: $0 <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  install             Download and install PocketBase binary"
+    echo "  dev                 Start development server"
+    echo "  test                Start test server"
+    echo "  setup-users <env>   Set up admin and test users (env: dev|test)"
+    echo "  stop [env]          Stop running servers (env: dev|test|all, default: all)"
+    echo "  clean [env]         Clean environment data (env: dev|test|all, default: all)"
+    echo "  status              Show status of dev and test servers"
+    echo "  create-user <env>   Create a new user in environment"
+    echo ""
+    echo "Options (varies by command):"
+    echo "  --help, -h          Show help for specific command"
+    echo ""
+    echo "Examples:"
+    echo "  $0 install                      # Download PocketBase"
+    echo "  $0 dev                          # Start dev server"
+    echo "  $0 test --background            # Start test server in background"
+    echo "  $0 setup-users dev              # Setup users in dev environment"
+    echo "  $0 stop test                    # Stop test server"
+    echo "  $0 clean all --force            # Clean all environments"
+    echo "  $0 status                       # Check server status"
+    echo ""
+    echo "Environment Configuration:"
+    echo "  Configuration is loaded from .env.local"
+    echo "  Copy .env.example to .env.local and customize"
+    echo ""
+    echo "Current Configuration:"
+    echo "  Admin Email: $ADMIN_EMAIL"
+    echo "  Test User Email: $TEST_USER_EMAIL"
+    echo "  Dev Port: $DEV_PORT"
+    echo "  Test Port: $TEST_PORT"
+    echo "  Host: $PB_HOST"
+}
+
+show_status() {
+    echo_info "PocketBase Server Status"
+    echo ""
+    
+    local project_dir="$(get_project_dir)"
+    
+    # Check dev server
+    echo -n "Development Server (port $DEV_PORT): "
+    local dev_pid=$(get_pid_from_file "$project_dir/dev/pocketbase.pid" 2>/dev/null || echo "")
+    if [ -n "$dev_pid" ]; then
+        echo -e "${GREEN}Running${NC} (PID: $dev_pid)"
+        echo "  URL: http://$PB_HOST:$DEV_PORT"
+        echo "  Admin UI: http://$PB_HOST:$DEV_PORT/_/"
+    elif check_port "$DEV_PORT"; then
+        echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
+    else
+        echo -e "${RED}Stopped${NC}"
+    fi
+    
+    echo ""
+    
+    # Check test server
+    echo -n "Test Server (port $TEST_PORT): "
+    local test_pid=$(get_pid_from_file "$project_dir/test/pocketbase.pid" 2>/dev/null || echo "")
+    if [ -n "$test_pid" ]; then
+        echo -e "${GREEN}Running${NC} (PID: $test_pid)"
+        echo "  URL: http://$PB_HOST:$TEST_PORT"
+        echo "  Admin UI: http://$PB_HOST:$TEST_PORT/_/"
+    elif check_port "$TEST_PORT"; then
+        echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
+    else
+        echo -e "${RED}Stopped${NC}"
+    fi
+    
+    echo ""
+    
+    # Check if PocketBase binary exists
+    echo -n "PocketBase Binary: "
+    if check_pocketbase_binary >/dev/null 2>&1; then
+        local pb_binary=$(check_pocketbase_binary)
+        local version=$("$pb_binary" --version 2>/dev/null | head -1 || echo "unknown")
+        echo -e "${GREEN}Installed${NC} ($version)"
+        echo "  Path: $pb_binary"
+    else
+        echo -e "${RED}Not installed${NC}"
+        echo "  Run: $0 install"
+    fi
+}
+
+create_user_interactive() {
+    local environment="$1"
+    
+    if [ "$environment" != "dev" ] && [ "$environment" != "test" ]; then
+        echo_error "Invalid environment: $environment. Use 'dev' or 'test'"
+        exit 1
+    fi
+    
+    local port
+    case $environment in
+        dev) port="$DEV_PORT" ;;
+        test) port="$TEST_PORT" ;;
+    esac
+    
+    local pb_url="http://$PB_HOST:$port"
+    
+    echo_info "Creating new user in $environment environment"
+    echo_debug "PocketBase URL: $pb_url"
+    
+    # Check if PocketBase is running
+    if ! wait_for_pocketbase "$pb_url" 5; then
+        echo_error "PocketBase $environment server is not running"
+        echo_info "Start it first: $0 $environment"
+        exit 1
+    fi
+    
+    # Get user details interactively
+    echo ""
+    read -p "Email: " user_email
+    read -s -p "Password: " user_password
+    echo ""
+    read -s -p "Confirm Password: " user_password_confirm
+    echo ""
+    
+    if [ "$user_password" != "$user_password_confirm" ]; then
+        echo_error "Passwords don't match"
+        exit 1
+    fi
+    
+    read -p "Name (optional): " user_name
+    
+    # Authenticate as admin first
+    echo_info "Authenticating as admin..."
+    AUTH_RESPONSE=$(curl -s -X POST "$pb_url/api/admins/auth-with-password" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"identity\": \"$ADMIN_EMAIL\",
+            \"password\": \"$ADMIN_PASSWORD\"
+        }")
+    
+    if ! echo "$AUTH_RESPONSE" | grep -q '"token"'; then
+        echo_error "Failed to authenticate as admin. Make sure admin user exists."
+        echo_info "Run: $0 setup-users $environment"
+        exit 1
+    fi
+    
+    ADMIN_TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+    
+    # Create the user
+    echo_info "Creating user..."
+    USER_DATA="{
+        \"email\": \"$user_email\",
+        \"password\": \"$user_password\",
+        \"passwordConfirm\": \"$user_password\""
+    
+    if [ -n "$user_name" ]; then
+        USER_DATA="$USER_DATA,
+        \"name\": \"$user_name\""
+    fi
+    
+    USER_DATA="$USER_DATA
+    }"
+    
+    USER_RESPONSE=$(curl -s -X POST "$pb_url/api/collections/users/records" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "$USER_DATA")
+    
+    if echo "$USER_RESPONSE" | grep -q '"id"'; then
+        echo_success "User created successfully!"
+        echo_info "Email: $user_email"
+        [ -n "$user_name" ] && echo_info "Name: $user_name"
+    else
+        echo_error "Failed to create user"
+        echo_debug "Response: $USER_RESPONSE"
+        exit 1
+    fi
+}
+
+# Parse command line arguments
+if [ $# -eq 0 ]; then
+    show_help
+    exit 1
+fi
+
+COMMAND=$1
+shift
+
+case $COMMAND in
+    install)
+        exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
+        ;;
+    dev)
+        exec "$SCRIPT_DIR/pb-dev" "$@"
+        ;;
+    test)
+        exec "$SCRIPT_DIR/pb-test" "$@"
+        ;;
+    setup-users)
+        exec "$SCRIPT_DIR/scripts/setup-users.sh" "$@"
+        ;;
+    stop)
+        exec "$SCRIPT_DIR/scripts/stop.sh" "$@"
+        ;;
+    clean)
+        exec "$SCRIPT_DIR/scripts/clean.sh" "$@"
+        ;;
+    status)
+        show_status
+        ;;
+    create-user)
+        if [ $# -eq 0 ]; then
+            echo_error "Environment required for create-user command"
+            echo_info "Usage: $0 create-user <dev|test>"
+            exit 1
+        fi
+        create_user_interactive "$1"
+        ;;
+    --help|-h)
+        show_help
+        ;;
+    *)
+        echo_error "Unknown command: $COMMAND"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

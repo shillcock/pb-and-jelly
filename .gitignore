@@ -1,0 +1,20 @@
+# Local environment configuration
+.env.local
+
+# PocketBase data directories
+dev/
+test/
+bin/
+
+# Temporary files
+*.tmp
+*.log
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# PocketBase Development Environment Launcher
+# Launches PocketBase using the dev/ directory as working directory
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/scripts/utils.sh"
+
+# Load environment variables
+load_env
+
+PROJECT_DIR="$(get_project_dir)"
+DEV_DIR="$PROJECT_DIR/dev"
+
+# Check if PocketBase binary exists
+PB_BINARY=$(check_pocketbase_binary)
+
+# Create dev directory if it doesn't exist
+mkdir -p "$DEV_DIR"
+
+# Use environment variables for defaults
+DEV_PORT="$DEV_PORT"
+DEV_HOST="$PB_HOST"
+
+# Override echo functions for dev context
+echo_info() {
+    echo -e "${GREEN}[DEV]${NC} $1"
+}
+
+echo_warn() {
+    echo -e "${YELLOW}[DEV]${NC} $1"
+}
+
+echo_error() {
+    echo -e "${RED}[DEV]${NC} $1"
+}
+
+echo_debug() {
+    echo -e "${BLUE}[DEV]${NC} $1"
+}
+
+# Parse command line arguments
+ARGS=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --port)
+            DEV_PORT="$2"
+            shift 2
+            ;;
+        --host)
+            DEV_HOST="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "PocketBase Development Environment"
+            echo ""
+            echo "Usage: $0 [options] [pocketbase-args...]"
+            echo ""
+            echo "Options:"
+            echo "  --port PORT    Set port (default: 8090)"
+            echo "  --host HOST    Set host (default: 127.0.0.1)"
+            echo "  --help, -h     Show this help message"
+            echo ""
+            echo "Any additional arguments will be passed directly to PocketBase"
+            echo ""
+            echo "Examples:"
+            echo "  $0                           # Start with defaults"
+            echo "  $0 --port 9090             # Start on port 9090"
+            echo "  $0 --host 0.0.0.0          # Listen on all interfaces"
+            echo "  $0 serve --dev             # Pass --dev flag to PocketBase"
+            exit 0
+            ;;
+        *)
+            ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Default to 'serve' command if no command specified
+if [ ${#ARGS[@]} -eq 0 ]; then
+    ARGS=("serve")
+fi
+
+echo_info "Starting PocketBase Development Environment"
+echo_debug "Working directory: $DEV_DIR"
+echo_debug "Binary: $PB_BINARY"
+echo_debug "Host: $DEV_HOST"
+echo_debug "Port: $DEV_PORT"
+echo_debug "Command: ${ARGS[*]}"
+
+# Change to dev directory and launch PocketBase
+cd "$DEV_DIR"
+
+echo_info "PocketBase Dev Server starting at http://${DEV_HOST}:${DEV_PORT}"
+echo_info "Admin UI will be available at http://${DEV_HOST}:${DEV_PORT}/_/"
+echo_info "Press Ctrl+C to stop"
+echo ""
+
+exec "$PB_BINARY" "${ARGS[@]}" --http="${DEV_HOST}:${DEV_PORT}"
