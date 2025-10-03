@@ -289,9 +289,9 @@ case $FIRST_ARG in
         case $COMMAND in
             start)
                 if [ "$ENVIRONMENT" = "dev" ]; then
-                    exec "$SCRIPT_DIR/scripts/pb-dev" "$@"
+                    exec "$SCRIPT_DIR/scripts/pb-dev.sh" "$@"
                 else
-                    exec "$SCRIPT_DIR/scripts/pb-test" "$@"
+                    exec "$SCRIPT_DIR/scripts/pb-test.sh" "$@"
                 fi
                 ;;
             stop)

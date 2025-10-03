@@ -39,7 +39,7 @@ echo ""
 
 # Test 1: Check if main scripts exist and are executable
 test_info "Checking script files..."
-for script in pb.sh scripts/pb-dev scripts/pb-test scripts/install-pocketbase.sh scripts/setup-users.sh scripts/clean.sh scripts/stop.sh; do
+for script in pb.sh scripts/pb-dev.sh scripts/pb-test.sh scripts/install-pocketbase.sh scripts/setup-users.sh scripts/clean.sh scripts/stop.sh; do
     if [ ! -f "$script" ]; then
         test_error "Script not found: $script"
     fi

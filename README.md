@@ -97,8 +97,8 @@ For advanced usage, automation, or debugging, you can run scripts directly:
 
 | Script | Purpose | Recommendation |
 |--------|---------|----------------|
-| `./scripts/pb-dev` | Start development server directly | Use `./pb.sh dev start` instead |
-| `./scripts/pb-test` | Start test server directly | Use `./pb.sh test start` instead |
+| `./scripts/pb-dev.sh` | Start development server directly | Use `./pb.sh dev start` instead |
+| `./scripts/pb-test.sh` | Start test server directly | Use `./pb.sh test start` instead |
 | `./scripts/install-pocketbase.sh` | Install PocketBase | Use `./pb.sh install` instead |
 | `./scripts/setup-users.sh <env>` | Set up users (requires environment) | Use `./pb.sh <env> setup-users` instead |
 | `./scripts/clean.sh <env>` | Clean environments (requires environment) | Use `./pb.sh <env> clean` instead |
@@ -258,8 +258,8 @@ pb-tools/
 │   └── pocketbase.pid   # Test server PID
 └── scripts/             # All utility scripts
     ├── utils.sh         # Shared utilities
-    ├── pb-dev           # Development server launcher (internal)
-    ├── pb-test          # Test server launcher (internal)
+    ├── pb-dev.sh        # Development server launcher (internal)
+    ├── pb-test.sh       # Test server launcher (internal)
     ├── install-pocketbase.sh
     ├── setup-users.sh
     ├── clean.sh
