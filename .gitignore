@@ -1,5 +1,3 @@
-# Local environment configuration
-.env.local
 
 # PocketBase data directories
 dev/

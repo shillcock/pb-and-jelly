@@ -73,15 +73,6 @@ load_env() {
         exit 1
     fi
     
-    # Load global configuration from .env.local first (for things like PB_VERSION)
-    local global_env="$project_dir/.env.local"
-    if [ -f "$global_env" ]; then
-        echo_debug "Loading global environment from $global_env"
-        set -a
-        source "$global_env"
-        set +a
-    fi
-    
     # Load environment-specific configuration
     if [ -n "$environment" ]; then
         local env_file="$project_dir/.env.$environment"

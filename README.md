@@ -19,11 +19,10 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
    cd pb-tools
    ```
 
-2. **Configure environments:**
+2. **Configure environments (optional):**
    ```bash
-   # Environment-specific configs are ready to use (.env.dev, .env.test)
-   # Copy .env.example to .env.local for global overrides (optional)
-   cp .env.example .env.local
+   # Environment-specific configs are ready to use out of the box
+   # Edit .env.dev or .env.test if you need custom credentials/ports
    ```
 
 3. **Install PocketBase:**
@@ -47,13 +46,14 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
 
 ## Configuration
 
-### Environment-Specific Configuration
+### Configuration Files
 
-This toolkit uses separate configuration files for different environments:
+This toolkit uses three simple configuration files:
 
 **Environment-Specific Files (tracked in git):**
 - `.env.dev` - Development environment settings (port 8090)
 - `.env.test` - Test environment settings (port 8091)
+- `.pb-version` - PocketBase version pinning
 
 **Example `.env.dev`:**
 ```bash
@@ -77,24 +77,14 @@ PORT=8091
 PB_HOST=127.0.0.1
 ```
 
-### Global Configuration
-
-**`.env.local` (gitignored) - Optional global overrides:**
-```bash
-# Global overrides (uncomment to override environment-specific settings)
-# PB_HOST=0.0.0.0
-# ADMIN_EMAIL=custom-admin@example.com
-```
+**Customization:**
+To customize credentials or ports, simply edit `.env.dev` or `.env.test` directly. Changes are shared with your team since these files are tracked in git.
 
 **Configuration Priority:**
 1. Command-line arguments (highest priority)
-2. `.env.local` global overrides
-3. Environment-specific files (`.env.dev`, `.env.test`)
-4. Built-in defaults (lowest priority)
+2. Environment-specific files (`.env.dev`, `.env.test`)
+3. Built-in defaults (lowest priority)
 
-**Version Management:**
-- PocketBase version is managed via `.pb-version` file (tracked in git)
-- Similar to `.node-version`, `.python-version`, etc.
 
 ### Version Pinning
 

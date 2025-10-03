@@ -46,14 +46,14 @@ show_help() {
     echo "  $0 status                       # Check all server status"
     echo "  $0 test create-user             # Create user in test environment"
     echo ""
-    echo "Environment Configuration:"
-    echo "  Environment-specific config: .env.dev, .env.test"
-    echo "  Global overrides: .env.local (copy from .env.example)"
+    echo "Configuration Files:"
+    echo "  .env.dev, .env.test - Environment-specific settings"
+    echo "  .pb-version - Version pinning"
     echo ""
-    echo "Current Global Configuration:"
+    echo "Current Configuration:"
     echo "  Host: $PB_HOST"
     echo "  PB Version: $PB_VERSION (from .pb-version file)"
-    echo "  (See .env.dev/.env.test for environment-specific settings)"
+    echo "  (Edit .env.dev/.env.test to customize)"
 }
 
 show_status() {
