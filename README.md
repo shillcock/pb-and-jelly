@@ -32,12 +32,12 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
 
 4. **Start development server:**
    ```bash
-   ./pb-cli dev
+   ./pb-cli dev start
    ```
 
 5. **Set up users (in another terminal):**
    ```bash
-   ./pb-cli setup-users dev
+   ./pb-cli dev setup-users
    ```
 
 6. **Access your PocketBase:**
@@ -69,31 +69,48 @@ PB_HOST=127.0.0.1
 
 ## Commands
 
-### Main CLI: `./pb-cli <command>`
+### Main CLI: `./pb-cli <environment> <command>` or `./pb-cli <global-command>`
 
+**Environment Commands:**
+| Command | Description | Example |
+|---------|-------------|---------|
+| `<env> start` | Start server | `./pb-cli dev start` |
+| `<env> stop` | Stop server | `./pb-cli test stop` |
+| `<env> setup-users` | Create admin and test users | `./pb-cli dev setup-users` |
+| `<env> create-user` | Interactively create a user | `./pb-cli dev create-user` |
+| `<env> clean` | Clean environment data | `./pb-cli test clean --force` |
+| `<env> status` | Show environment status | `./pb-cli dev status` |
+
+**Global Commands:**
 | Command | Description | Example |
 |---------|-------------|---------|
 | `install` | Download and install PocketBase | `./pb-cli install` |
-| `dev` | Start development server | `./pb-cli dev` |
-| `test` | Start test server | `./pb-cli test --background` |
-| `setup-users <env>` | Create admin and test users | `./pb-cli setup-users dev` |
-| `stop [env]` | Stop running servers | `./pb-cli stop all` |
-| `clean [env]` | Clean environment data | `./pb-cli clean test --force` |
-| `status` | Show server status | `./pb-cli status` |
-| `create-user <env>` | Interactively create a user | `./pb-cli create-user dev` |
+| `status` | Show status of all environments | `./pb-cli status` |
+| `stop-all` | Stop all running servers | `./pb-cli stop-all` |
+| `clean-all` | Clean all environment data | `./pb-cli clean-all --force` |
 
-### Direct Scripts
+### Direct Scripts (Advanced Usage)
 
-You can also run scripts directly:
+**⚠️ Most users should use `./pb-cli` instead of direct scripts.**
 
-| Script | Purpose |
-|--------|---------|
-| `./pb-dev` | Start development server |
-| `./pb-test` | Start test server |
-| `./scripts/install-pocketbase.sh` | Install PocketBase |
-| `./scripts/setup-users.sh` | Set up users |
-| `./scripts/clean.sh` | Clean environments |
-| `./scripts/stop.sh` | Stop servers |
+For advanced usage, automation, or debugging, you can run scripts directly:
+
+| Script | Purpose | Recommendation |
+|--------|---------|----------------|
+| `./scripts/pb-dev` | Start development server directly | Use `./pb-cli dev start` instead |
+| `./scripts/pb-test` | Start test server directly | Use `./pb-cli test start` instead |
+| `./scripts/install-pocketbase.sh` | Install PocketBase | Use `./pb-cli install` instead |
+| `./scripts/setup-users.sh <env>` | Set up users (requires environment) | Use `./pb-cli <env> setup-users` instead |
+| `./scripts/clean.sh <env>` | Clean environments (requires environment) | Use `./pb-cli <env> clean` instead |
+| `./scripts/stop.sh <env>` | Stop servers (requires environment) | Use `./pb-cli <env> stop` instead |
+
+**When to use direct scripts:**
+- Custom automation scripts
+- Debugging server startup issues
+- Integration with external build systems
+- When you need to bypass pb-cli's argument parsing
+
+**For all regular usage, use the unified `./pb-cli` interface.**
 
 ## Usage Examples
 
@@ -101,53 +118,55 @@ You can also run scripts directly:
 
 ```bash
 # Start dev server
-./pb-cli dev
+./pb-cli dev start
 
 # In another terminal, set up users
-./pb-cli setup-users dev
+./pb-cli dev setup-users
 
 # Check status
 ./pb-cli status
+# Or check just dev environment
+./pb-cli dev status
 
 # When done, stop the server (Ctrl+C or):
-./pb-cli stop dev
+./pb-cli dev stop
 ```
 
 ### Testing Workflow
 
 ```bash
 # Start test server in background
-./pb-cli test --background --quiet
+./pb-cli test start --background --quiet
 
 # Set up test users
-./pb-cli setup-users test
+./pb-cli test setup-users
 
 # Run your tests here...
 npm test
 
 # Clean up
-./pb-cli stop test
-./pb-cli clean test --force
+./pb-cli test stop
+./pb-cli test clean --force
 ```
 
 ### Reset Everything
 
 ```bash
 # Stop all servers and clean all data
-./pb-cli stop all
-./pb-cli clean all --force
+./pb-cli stop-all
+./pb-cli clean-all --force
 
 # Start fresh
-./pb-cli dev
-./pb-cli setup-users dev
+./pb-cli dev start
+./pb-cli dev setup-users
 ```
 
 ## Command Options
 
-### Development Server (`./pb-cli dev`)
+### Development Server (`./pb-cli dev start`)
 
 ```bash
-./pb-cli dev [options] [pocketbase-args...]
+./pb-cli dev start [options] [pocketbase-args...]
 
 Options:
   --port PORT    Set port (default: from .env.local)
@@ -155,15 +174,15 @@ Options:
   --help, -h     Show help
 
 Examples:
-  ./pb-cli dev                          # Start with defaults
-  ./pb-cli dev --port 9090             # Custom port
-  ./pb-cli dev serve --dev             # Pass --dev to PocketBase
+  ./pb-cli dev start                    # Start with defaults
+  ./pb-cli dev start --port 9090       # Custom port
+  ./pb-cli dev start serve --dev       # Pass --dev to PocketBase
 ```
 
-### Test Server (`./pb-cli test`)
+### Test Server (`./pb-cli test start`)
 
 ```bash
-./pb-cli test [options] [pocketbase-args...]
+./pb-cli test start [options] [pocketbase-args...]
 
 Options:
   --port PORT        Set port (default: from .env.local)
@@ -174,15 +193,15 @@ Options:
   --help, -h        Show help
 
 Examples:
-  ./pb-cli test                        # Start interactive
-  ./pb-cli test --background --quiet   # Background with no output
-  ./pb-cli test --reset               # Reset DB and start
+  ./pb-cli test start                      # Start interactive
+  ./pb-cli test start --background --quiet # Background with no output
+  ./pb-cli test start --reset             # Reset DB and start
 ```
 
-### User Setup (`./pb-cli setup-users`)
+### User Setup (`./pb-cli <env> setup-users`)
 
 ```bash
-./pb-cli setup-users <env> [options]
+./pb-cli <env> setup-users [options]
 
 Environment:
   dev     Development environment
@@ -196,27 +215,28 @@ Options:
   --help, -h              Show help
 
 Examples:
-  ./pb-cli setup-users dev                    # Use .env.local values
-  ./pb-cli setup-users test --admin-email admin@myapp.com
+  ./pb-cli dev setup-users                    # Use .env.local values
+  ./pb-cli test setup-users --admin-email admin@myapp.com
 ```
 
-### Cleanup (`./pb-cli clean`)
+### Cleanup (`./pb-cli <env> clean` or `./pb-cli clean-all`)
 
 ```bash
-./pb-cli clean [env] [options]
+./pb-cli <env> clean [options]     # Clean specific environment
+./pb-cli clean-all [options]       # Clean all environments
 
 Environment:
   dev     Clean development environment
   test    Clean test environment
-  all     Clean both (default)
 
 Options:
   --force, -f    Skip confirmation prompts
   --help, -h     Show help
 
 Examples:
-  ./pb-cli clean dev                   # Clean dev with confirmation
-  ./pb-cli clean all --force          # Clean both without confirmation
+  ./pb-cli dev clean                   # Clean dev with confirmation
+  ./pb-cli test clean --force          # Clean test without confirmation
+  ./pb-cli clean-all --force           # Clean both without confirmation
 ```
 
 ## Directory Structure
@@ -228,8 +248,6 @@ pb-tools/
 ├── .gitignore           # Ignore patterns
 ├── README.md            # This file
 ├── pb-cli               # Main CLI interface
-├── pb-dev               # Development server launcher
-├── pb-test              # Test server launcher
 ├── bin/                 # PocketBase binary (gitignored)
 │   └── pocketbase
 ├── dev/                 # Development environment (gitignored)
@@ -238,8 +256,10 @@ pb-tools/
 ├── test/                # Test environment (gitignored)
 │   ├── pb_data/         # Test database
 │   └── pocketbase.pid   # Test server PID
-└── scripts/             # Utility scripts
+└── scripts/             # All utility scripts
     ├── utils.sh         # Shared utilities
+    ├── pb-dev           # Development server launcher (internal)
+    ├── pb-test          # Test server launcher (internal)
     ├── install-pocketbase.sh
     ├── setup-users.sh
     ├── clean.sh
@@ -274,15 +294,15 @@ const execPromise = util.promisify(exec);
 
 beforeAll(async () => {
   // Start test server
-  await execPromise('./pb-cli test --background --quiet --reset');
+  await execPromise('./pb-cli test start --background --quiet --reset');
   
   // Set up test users
-  await execPromise('./pb-cli setup-users test');
+  await execPromise('./pb-cli test setup-users');
 });
 
 afterAll(async () => {
   // Clean up
-  await execPromise('./pb-cli stop test');
+  await execPromise('./pb-cli test stop');
 });
 
 // Your tests here...
@@ -302,12 +322,12 @@ class TestPocketBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Start test server
-        subprocess.run(['./pb-cli', 'test', '--background', '--quiet', '--reset'])
-        subprocess.run(['./pb-cli', 'setup-users', 'test'])
+        subprocess.run(['./pb-cli', 'test', 'start', '--background', '--quiet', '--reset'])
+        subprocess.run(['./pb-cli', 'test', 'setup-users'])
 
     @classmethod
     def tearDownClass(cls):
-        subprocess.run(['./pb-cli', 'stop', 'test'])
+        subprocess.run(['./pb-cli', 'test', 'stop'])
 
     def test_health_check(self):
         import requests
@@ -331,7 +351,7 @@ class TestPocketBase(unittest.TestCase):
 
 3. Try different ports:
    ```bash
-   ./pb-cli dev --port 9090
+   ./pb-cli dev start --port 9090
    ```
 
 ### Permission errors
@@ -345,8 +365,8 @@ chmod +x pb-cli pb-dev pb-test scripts/*.sh
 
 If things get messed up:
 ```bash
-./pb-cli stop all
-./pb-cli clean all --force
+./pb-cli stop-all
+./pb-cli clean-all --force
 rm -f bin/pocketbase
 ./pb-cli install
 ```

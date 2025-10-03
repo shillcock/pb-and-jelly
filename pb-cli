@@ -14,29 +14,35 @@ load_env
 show_help() {
     echo "PocketBase Development CLI"
     echo ""
-    echo "Usage: $0 <command> [options]"
+    echo "Usage: $0 <environment> <command> [options]"
+    echo "       $0 <global-command> [options]"
     echo ""
-    echo "Commands:"
+    echo "Environment Commands:"
+    echo "  <env> start         Start server (env: dev|test)"
+    echo "  <env> stop          Stop server"
+    echo "  <env> setup-users   Set up admin and test users"
+    echo "  <env> create-user   Create a new user interactively"
+    echo "  <env> clean         Clean environment data"
+    echo "  <env> status        Show environment status"
+    echo ""
+    echo "Global Commands:"
     echo "  install             Download and install PocketBase binary"
-    echo "  dev                 Start development server"
-    echo "  test                Start test server"
-    echo "  setup-users <env>   Set up admin and test users (env: dev|test)"
-    echo "  stop [env]          Stop running servers (env: dev|test|all, default: all)"
-    echo "  clean [env]         Clean environment data (env: dev|test|all, default: all)"
-    echo "  status              Show status of dev and test servers"
-    echo "  create-user <env>   Create a new user in environment"
+    echo "  status              Show status of all environments"
+    echo "  stop-all            Stop all running servers"
+    echo "  clean-all           Clean all environment data"
     echo ""
     echo "Options (varies by command):"
     echo "  --help, -h          Show help for specific command"
     echo ""
     echo "Examples:"
     echo "  $0 install                      # Download PocketBase"
-    echo "  $0 dev                          # Start dev server"
-    echo "  $0 test --background            # Start test server in background"
-    echo "  $0 setup-users dev              # Setup users in dev environment"
-    echo "  $0 stop test                    # Stop test server"
-    echo "  $0 clean all --force            # Clean all environments"
-    echo "  $0 status                       # Check server status"
+    echo "  $0 dev start                    # Start dev server"
+    echo "  $0 test start --background      # Start test server in background"
+    echo "  $0 dev setup-users              # Setup users in dev environment"
+    echo "  $0 test stop                    # Stop test server"
+    echo "  $0 dev clean --force            # Clean dev environment"
+    echo "  $0 status                       # Check all server status"
+    echo "  $0 test create-user             # Create user in test environment"
     echo ""
     echo "Environment Configuration:"
     echo "  Configuration is loaded from .env.local"
@@ -99,6 +105,55 @@ show_status() {
     fi
 }
 
+show_env_status() {
+    local environment="$1"
+    local project_dir="$(get_project_dir)"
+    
+    if [ "$environment" != "dev" ] && [ "$environment" != "test" ]; then
+        echo_error "Invalid environment: $environment. Use 'dev' or 'test'"
+        exit 1
+    fi
+    
+    local port
+    local env_name
+    case $environment in
+        dev)
+            port="$DEV_PORT"
+            env_name="Development"
+            ;;
+        test)
+            port="$TEST_PORT"
+            env_name="Test"
+            ;;
+    esac
+    
+    echo_info "$env_name Environment Status"
+    echo ""
+    
+    echo -n "$env_name Server (port $port): "
+    local pid=$(get_pid_from_file "$project_dir/$environment/pocketbase.pid" 2>/dev/null || echo "")
+    if [ -n "$pid" ]; then
+        echo -e "${GREEN}Running${NC} (PID: $pid)"
+        echo "  URL: http://$PB_HOST:$port"
+        echo "  Admin UI: http://$PB_HOST:$port/_/"
+        echo "  Data Directory: $project_dir/$environment/pb_data"
+    elif check_port "$port"; then
+        echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
+    else
+        echo -e "${RED}Stopped${NC}"
+    fi
+    
+    echo ""
+    
+    # Show data directory info
+    if [ -d "$project_dir/$environment/pb_data" ]; then
+        local db_size=$(du -sh "$project_dir/$environment/pb_data" 2>/dev/null | cut -f1 || echo "unknown")
+        echo -e "Database: ${GREEN}Exists${NC} ($db_size)"
+    else
+        echo -e "Database: ${YELLOW}Not initialized${NC}"
+    fi
+}
+
 create_user_interactive() {
     local environment="$1"
     
@@ -121,7 +176,7 @@ create_user_interactive() {
     # Check if PocketBase is running
     if ! wait_for_pocketbase "$pb_url" 5; then
         echo_error "PocketBase $environment server is not running"
-        echo_info "Start it first: $0 $environment"
+        echo_info "Start it first: $0 $environment start"
         exit 1
     fi
     
@@ -151,7 +206,7 @@ create_user_interactive() {
     
     if ! echo "$AUTH_RESPONSE" | grep -q '"token"'; then
         echo_error "Failed to authenticate as admin. Make sure admin user exists."
-        echo_info "Run: $0 setup-users $environment"
+        echo_info "Run: $0 $environment setup-users"
         exit 1
     fi
     
@@ -194,46 +249,98 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-COMMAND=$1
+# Check for help
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    show_help
+    exit 0
+fi
+
+FIRST_ARG="$1"
 shift
 
-case $COMMAND in
+# Handle global commands (no environment specified)
+case $FIRST_ARG in
     install)
         exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
-        ;;
-    dev)
-        exec "$SCRIPT_DIR/pb-dev" "$@"
-        ;;
-    test)
-        exec "$SCRIPT_DIR/pb-test" "$@"
-        ;;
-    setup-users)
-        exec "$SCRIPT_DIR/scripts/setup-users.sh" "$@"
-        ;;
-    stop)
-        exec "$SCRIPT_DIR/scripts/stop.sh" "$@"
-        ;;
-    clean)
-        exec "$SCRIPT_DIR/scripts/clean.sh" "$@"
         ;;
     status)
         show_status
         ;;
-    create-user)
+    stop-all)
+        exec "$SCRIPT_DIR/scripts/stop.sh" all "$@"
+        ;;
+    clean-all)
+        exec "$SCRIPT_DIR/scripts/clean.sh" all "$@"
+        ;;
+    dev|test)
+        # Environment-specific commands
+        ENVIRONMENT="$FIRST_ARG"
+        
         if [ $# -eq 0 ]; then
-            echo_error "Environment required for create-user command"
-            echo_info "Usage: $0 create-user <dev|test>"
+            echo_error "Command required after environment"
+            echo_info "Usage: $0 $ENVIRONMENT <command>"
+            echo_info "Available commands: start, stop, setup-users, create-user, clean, status"
             exit 1
         fi
-        create_user_interactive "$1"
-        ;;
-    --help|-h)
-        show_help
+        
+        COMMAND="$1"
+        shift
+        
+        case $COMMAND in
+            start)
+                if [ "$ENVIRONMENT" = "dev" ]; then
+                    exec "$SCRIPT_DIR/scripts/pb-dev" "$@"
+                else
+                    exec "$SCRIPT_DIR/scripts/pb-test" "$@"
+                fi
+                ;;
+            stop)
+                exec "$SCRIPT_DIR/scripts/stop.sh" "$ENVIRONMENT" "$@"
+                ;;
+            setup-users)
+                exec "$SCRIPT_DIR/scripts/setup-users.sh" "$ENVIRONMENT" "$@"
+                ;;
+            create-user)
+                create_user_interactive "$ENVIRONMENT"
+                ;;
+            clean)
+                exec "$SCRIPT_DIR/scripts/clean.sh" "$ENVIRONMENT" "$@"
+                ;;
+            status)
+                show_env_status "$ENVIRONMENT"
+                ;;
+            --help|-h)
+                echo "$ENVIRONMENT Environment Commands:"
+                echo ""
+                echo "Usage: $0 $ENVIRONMENT <command> [options]"
+                echo ""
+                echo "Commands:"
+                echo "  start         Start $ENVIRONMENT server"
+                echo "  stop          Stop $ENVIRONMENT server"
+                echo "  setup-users   Set up admin and test users"
+                echo "  create-user   Create a new user interactively"
+                echo "  clean         Clean $ENVIRONMENT environment data"
+                echo "  status        Show $ENVIRONMENT environment status"
+                echo ""
+                echo "Examples:"
+                echo "  $0 $ENVIRONMENT start                    # Start server"
+                echo "  $0 $ENVIRONMENT start --background       # Start in background (test only)"
+                echo "  $0 $ENVIRONMENT setup-users              # Setup users"
+                echo "  $0 $ENVIRONMENT clean --force            # Clean without confirmation"
+                ;;
+            *)
+                echo_error "Unknown command for $ENVIRONMENT environment: $COMMAND"
+                echo_info "Available commands: start, stop, setup-users, create-user, clean, status"
+                echo_info "Use '$0 $ENVIRONMENT --help' for more information"
+                exit 1
+                ;;
+        esac
         ;;
     *)
-        echo_error "Unknown command: $COMMAND"
-        echo ""
-        show_help
+        echo_error "Unknown command or environment: $FIRST_ARG"
+        echo_info "Available environments: dev, test"
+        echo_info "Available global commands: install, status, stop-all, clean-all"
+        echo_info "Use '$0 --help' for more information"
         exit 1
         ;;
 esac
