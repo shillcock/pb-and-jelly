@@ -19,10 +19,10 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
    cd pb-tools
    ```
 
-2. **Configure environments (optional):**
+2. **Configure users (optional):**
    ```bash
-   # Environment-specific configs are ready to use out of the box
-   # Edit .env.dev or .env.test if you need custom credentials/ports
+   # Environment-specific configs are hardcoded and ready to use
+   # Create seed files for custom user setups (see User Seed Files section)
    ```
 
 3. **Install PocketBase:**
@@ -35,9 +35,10 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
    ./pb.sh dev start
    ```
 
-5. **Set up users (in another terminal):**
+5. **Seed users (in another terminal):**
    ```bash
-   ./pb.sh dev setup-users
+   # Create dev/dev-users.json first (see example files), then:
+   ./pb.sh dev seed-users
    ```
 
 6. **Access your PocketBase:**
@@ -48,42 +49,64 @@ A comprehensive toolkit for developing and testing applications with PocketBase 
 
 ### Configuration Files
 
-This toolkit uses three simple configuration files:
+This toolkit uses configuration files for different purposes:
 
-**Environment-Specific Files (tracked in git):**
-- `.env.dev` - Development environment settings (port 8090)
-- `.env.test` - Test environment settings (port 8091)
+**Configuration Files (tracked in git):**
 - `.pb-version` - PocketBase version pinning
+- `dev/dev-users.json` - User seed data for development environment (optional)
+- `test/test-users.json` - User seed data for test environment (optional)
 
-**Example `.env.dev`:**
-```bash
-# Development environment configuration
-ADMIN_EMAIL=dev-admin@example.com
-ADMIN_PASSWORD=dev-admin-password
-USER_EMAIL=dev-user@example.com
-USER_PASSWORD=dev-user-password
-PORT=8090
-PB_HOST=127.0.0.1
+**Environment Settings (hardcoded):**
+- **Dev**: Port 8090, Host 127.0.0.1
+- **Test**: Port 8091, Host 127.0.0.1
+
+
+### User Seed Files
+
+For setting up multiple users (useful for testing scenarios), create JSON seed files:
+
+**Example `dev/dev-users.json`:**
+```json
+{
+  "admin": {
+    "email": "dev-admin@example.com",
+    "password": "dev-admin-pass"
+  },
+  "users": [
+    {
+      "email": "dev-user@example.com",
+      "password": "devpass123",
+      "name": "Dev User"
+    }
+  ]
+}
 ```
 
-**Example `.env.test`:**
-```bash
-# Test environment configuration
-ADMIN_EMAIL=test-admin@example.com
-ADMIN_PASSWORD=test-admin-password
-USER_EMAIL=test-user@example.com
-USER_PASSWORD=test-user-password
-PORT=8091
-PB_HOST=127.0.0.1
+**Example `test/test-users.json`:**
+```json
+{
+  "admin": {
+    "email": "test-admin@example.com", 
+    "password": "test-admin-pass"
+  },
+  "users": [
+    {
+      "email": "alice@example.com",
+      "password": "alice123",
+      "name": "Alice Cooper"
+    },
+    {
+      "email": "bob@example.com",
+      "password": "bob123",
+      "name": "Bob Smith"
+    }
+  ]
+}
 ```
-
-**Customization:**
-To customize credentials or ports, simply edit `.env.dev` or `.env.test` directly. Changes are shared with your team since these files are tracked in git.
 
 **Configuration Priority:**
-1. Command-line arguments (highest priority)
-2. Environment-specific files (`.env.dev`, `.env.test`)
-3. Built-in defaults (lowest priority)
+1. Seed file credentials (if available)
+2. Hardcoded fallback values (built-in)
 
 
 ### Version Pinning
@@ -115,8 +138,8 @@ For CI/CD reliability, this toolkit uses a `.pb-version` file (similar to `.node
 |---------|-------------|---------|
 | `<env> start` | Start server | `./pb.sh dev start` |
 | `<env> stop` | Stop server | `./pb.sh test stop` |
-| `<env> setup-users` | Create admin and test users | `./pb.sh dev setup-users` |
-| `<env> create-user` | Interactively create a user | `./pb.sh dev create-user` |
+| `<env> setup` | Set up admin user | `./pb.sh dev setup` |
+| `<env> seed-users` | Seed users from JSON file | `./pb.sh dev seed-users` |
 | `<env> clean` | Clean environment data | `./pb.sh test clean --force` |
 | `<env> status` | Show environment status | `./pb.sh dev status` |
 
@@ -140,7 +163,7 @@ For advanced usage, automation, or debugging, you can run scripts directly:
 | `./scripts/pb-dev.sh` | Start development server directly | Use `./pb.sh dev start` instead |
 | `./scripts/pb-test.sh` | Start test server directly | Use `./pb.sh test start` instead |
 | `./scripts/install-pocketbase.sh` | Install PocketBase | Use `./pb.sh install` instead |
-| `./scripts/setup-users.sh <env>` | Set up users (requires environment) | Use `./pb.sh <env> setup-users` instead |
+| `./scripts/seed-users.sh <env>` | Seed users from JSON (requires environment) | Use `./pb.sh <env> seed-users` instead |
 | `./scripts/clean.sh <env>` | Clean environments (requires environment) | Use `./pb.sh <env> clean` instead |
 | `./scripts/stop.sh <env>` | Stop servers (requires environment) | Use `./pb.sh <env> stop` instead |
 
@@ -160,8 +183,8 @@ For advanced usage, automation, or debugging, you can run scripts directly:
 # Start dev server
 ./pb.sh dev start
 
-# In another terminal, set up users
-./pb.sh dev setup-users
+# In another terminal, seed users from JSON
+./pb.sh dev seed-users
 
 # Check status
 ./pb.sh status
@@ -178,8 +201,8 @@ For advanced usage, automation, or debugging, you can run scripts directly:
 # Start test server in background
 ./pb.sh test start --background --quiet
 
-# Set up test users
-./pb.sh test setup-users
+# Seed test users from JSON
+./pb.sh test seed-users
 
 # Run your tests here...
 npm test
@@ -198,7 +221,7 @@ npm test
 
 # Start fresh
 ./pb.sh dev start
-./pb.sh dev setup-users
+./pb.sh dev seed-users
 ```
 
 ## Command Options
@@ -238,10 +261,10 @@ Examples:
   ./pb.sh test start --reset             # Reset DB and start
 ```
 
-### User Setup (`./pb.sh <env> setup-users`)
+### User Seeding (`./pb.sh <env> seed-users`)
 
 ```bash
-./pb.sh <env> setup-users [options]
+./pb.sh <env> seed-users [options]
 
 Environment:
   dev     Development environment
@@ -255,8 +278,8 @@ Options:
   --help, -h              Show help
 
 Examples:
-  ./pb.sh dev setup-users                    # Use .env.local values
-  ./pb.sh test setup-users --admin-email admin@myapp.com
+  ./pb.sh dev seed-users                     # Seed users from JSON file
+  ./pb.sh test seed-users --admin-email admin@myapp.com
 ```
 
 ### Cleanup (`./pb.sh <env> clean` or `./pb.sh clean-all`)
@@ -301,7 +324,7 @@ pb-tools/
     ├── pb-dev.sh        # Development server launcher (internal)
     ├── pb-test.sh       # Test server launcher (internal)
     ├── install-pocketbase.sh
-    ├── setup-users.sh
+    ├── seed-users.sh
     ├── clean.sh
     └── stop.sh
 ```
@@ -336,8 +359,8 @@ beforeAll(async () => {
   // Start test server
   await execPromise('./pb.sh test start --background --quiet --reset');
   
-  // Set up test users
-  await execPromise('./pb.sh test setup-users');
+  // Seed test users from JSON
+  await execPromise('./pb.sh test seed-users');
 });
 
 afterAll(async () => {
@@ -363,7 +386,7 @@ class TestPocketBase(unittest.TestCase):
     def setUpClass(cls):
         # Start test server
         subprocess.run(['./pb.sh', 'test', 'start', '--background', '--quiet', '--reset'])
-        subprocess.run(['./pb.sh', 'test', 'setup-users'])
+        subprocess.run(['./pb.sh', 'test', 'seed-users'])
 
     @classmethod
     def tearDownClass(cls):

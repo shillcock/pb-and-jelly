@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Test script to verify PocketBase tools functionality
-# This script runs a comprehensive test of all features
+# This script runs a comprehensive integration test using ONLY the test environment
+# It will reset the test database but leaves the dev environment untouched
 
 set -e
 
@@ -39,7 +40,7 @@ echo ""
 
 # Test 1: Check if main scripts exist and are executable
 test_info "Checking script files..."
-for script in pb.sh scripts/pb-dev.sh scripts/pb-test.sh scripts/install-pocketbase.sh scripts/setup-users.sh scripts/clean.sh scripts/stop.sh; do
+for script in pb.sh scripts/pb-dev.sh scripts/pb-test.sh scripts/install-pocketbase.sh scripts/seed-users.sh scripts/clean.sh scripts/stop.sh; do
     if [ ! -f "$script" ]; then
         test_error "Script not found: $script"
     fi
@@ -50,16 +51,22 @@ for script in pb.sh scripts/pb-dev.sh scripts/pb-test.sh scripts/install-pocketb
 done
 test_success "All required scripts exist and are executable"
 
-# Test 2: Check environment configuration
-test_info "Checking environment configuration..."
-if [ ! -f ".env.example" ]; then
-    test_error ".env.example not found"
+# Test 2: Check configuration files
+# Current architecture uses:
+# - .pb-version for version pinning
+# - Hardcoded environment settings in scripts/utils.sh
+# - Optional JSON seed files in dev/ and test/ directories
+test_info "Checking configuration files..."
+if [ ! -f ".pb-version" ]; then
+    test_error ".pb-version not found - version pinning file required"
 fi
 
-if [ ! -f ".env.local" ]; then
-    test_error ".env.local not found - please copy from .env.example"
+# Check if .pb-version has valid content
+if [ ! -s ".pb-version" ]; then
+    test_error ".pb-version is empty - should contain PocketBase version"
 fi
-test_success "Environment configuration files exist"
+
+test_success "Configuration files exist and are valid"
 
 # Test 3: Test CLI help
 test_info "Testing CLI help command..."
@@ -85,13 +92,20 @@ if [ ! -f "bin/pocketbase" ]; then
 fi
 test_success "PocketBase is installed"
 
-# Test 6: Clean up any existing processes first
-test_info "Cleaning up existing processes..."
-./pb.sh stop-all > /dev/null 2>&1 || true
-./pb.sh clean-all --force > /dev/null 2>&1 || true
+# Test 6: Clean up test environment first
+test_info "Cleaning up test environment..."
+./pb.sh test stop > /dev/null 2>&1 || true
+./pb.sh test clean --force > /dev/null 2>&1 || true
 sleep 1
 
-# Test development server (background start and stop)
+# Test 7: Setup admin user before starting server
+test_info "Setting up admin user for test environment..."
+if ! ./pb.sh test setup; then
+    test_error "Failed to setup admin user"
+fi
+test_success "Admin user setup completed"
+
+# Test 8: Start test server
 test_info "Testing test server..."
 if ! ./pb.sh test start --background --quiet --reset; then
     test_error "Failed to start test server"
@@ -111,14 +125,14 @@ else
     test_success "Test server started successfully"
 fi
 
-# Test 7: Test user setup
-test_info "Testing user setup..."
-if ! ./pb.sh test setup-users; then
-    test_warn "User setup might have failed, but this could be due to existing users"
+# Test 9: Test user seeding
+test_info "Testing user seeding..."
+if ! ./pb.sh test seed-users; then
+    test_warn "User seeding might have failed, but this could be due to existing users"
 fi
-test_success "User setup completed (or users already exist)"
+test_success "User seeding completed (or users already exist)"
 
-# Test 8: Test API connectivity
+# Test 10: Test API connectivity
 test_info "Testing API connectivity..."
 if command -v curl >/dev/null 2>&1; then
     if curl -s "http://127.0.0.1:8091/_/" > /dev/null; then
@@ -130,21 +144,21 @@ else
     test_warn "curl not available - skipping API test"
 fi
 
-# Test 9: Test stop functionality
+# Test 11: Test stop functionality
 test_info "Testing stop functionality..."
 if ! ./pb.sh test stop; then
     test_error "Failed to stop test server"
 fi
 test_success "Test server stopped successfully"
 
-# Test 10: Test cleanup functionality
+# Test 12: Test cleanup functionality
 test_info "Testing cleanup functionality..."
 if ! ./pb.sh test clean --force; then
     test_error "Failed to clean test environment"
 fi
 test_success "Test environment cleaned successfully"
 
-# Test 11: Verify file structure
+# Test 13: Verify file structure
 test_info "Verifying directory structure..."
 expected_dirs=("bin" "dev" "test" "scripts")
 for dir in "${expected_dirs[@]}"; do
@@ -154,13 +168,13 @@ for dir in "${expected_dirs[@]}"; do
 done
 test_success "Directory structure is correct"
 
-# Test 12: Test gitignore
+# Test 14: Test gitignore
 test_info "Testing gitignore configuration..."
 if [ -f ".gitignore" ]; then
-    if grep -q ".env.local" .gitignore && grep -q "bin/" .gitignore && grep -q "dev/" .gitignore && grep -q "test/" .gitignore; then
+    if grep -q "bin/" .gitignore && grep -q "dev/" .gitignore && grep -q "test/" .gitignore; then
         test_success "Gitignore configuration is correct"
     else
-        test_warn "Gitignore might be missing some entries"
+        test_warn "Gitignore might be missing some entries (should ignore: bin/, dev/, test/)"
     fi
 else
     test_warn ".gitignore not found"
@@ -175,7 +189,7 @@ echo "Your PocketBase development environment is ready to use."
 echo ""
 echo "Quick start:"
 echo "  ./pb.sh dev start            # Start development server"
-echo "  ./pb.sh dev setup-users      # Set up users (in another terminal)"
+echo "  ./pb.sh dev seed-users       # Seed users from JSON (in another terminal)"
 echo "  ./pb.sh status               # Check server status"
 echo ""
 echo "For full documentation, see README.md"

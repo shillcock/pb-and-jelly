@@ -1,6 +1,6 @@
-# WARP.md
+# AGENTS.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+This file provides guidance to LLM coding Agents when working with code in this repository.
 
 ## Key Development Commands
 
@@ -10,6 +10,10 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 ./pb.sh install
 
 # Optional: customize credentials/ports by editing .env.dev or .env.test
+
+# Setup admin user (run once per environment to prevent browser popup)
+./pb.sh dev setup
+./pb.sh test setup
 ```
 
 ### Development Server
@@ -17,8 +21,8 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 # Start development server (interactive)
 ./pb.sh dev start
 
-# Set up admin and test users (run in another terminal)
-./pb.sh dev setup-users
+# Seed users from JSON file (run in another terminal)
+./pb.sh dev seed-users
 
 # Check status of all environments
 ./pb.sh status
@@ -32,8 +36,8 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 # Start test server in background with clean database
 ./pb.sh test start --background --quiet --reset
 
-# Set up test users
-./pb.sh test setup-users
+# Seed users from JSON file
+./pb.sh test seed-users
 
 # Stop test server
 ./pb.sh test stop
@@ -69,9 +73,9 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 **Script Architecture**:
 - `scripts/pb-dev.sh`, `scripts/pb-test.sh`: Direct environment launchers with environment-specific logging prefixes
-- `scripts/utils.sh`: Shared utilities for logging, environment loading, PID management, and PocketBase process control
+- `scripts/utils.sh`: Shared utilities for logging, environment loading, PID management, PocketBase process control, and admin user setup via CLI
 - `scripts/install-pocketbase.sh`: Auto-detects architecture and downloads latest PocketBase binary
-- `scripts/setup-users.sh`: Automated user creation using PocketBase API
+- `scripts/seed-users.sh`: Automated user seeding from JSON files using PocketBase API (assumes admin already exists)
 - `scripts/clean.sh`, `scripts/stop.sh`: Environment cleanup and process management utilities
 
 ### Environment Configuration
