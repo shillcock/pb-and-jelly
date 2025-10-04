@@ -143,6 +143,19 @@ if [ "$BACKGROUND" = true ]; then
     PB_PID=$!
     echo $PB_PID > "$PROJECT_DIR/dev/pocketbase.pid"
     
+    # Wait a moment and check if the process is still running
+    sleep 1
+    if ! kill -0 $PB_PID 2>/dev/null; then
+        echo_error "PocketBase failed to start"
+        echo_error "Check logs: tail -f ${LOG_FILE}"
+        if [ -f "$LOG_FILE" ]; then
+            echo_error "Last error from log:"
+            tail -5 "$LOG_FILE" >&2
+        fi
+        rm -f "$PROJECT_DIR/dev/pocketbase.pid"
+        exit 1
+    fi
+    
     if [ "$QUIET" = false ]; then
         echo_info "PocketBase Dev Server started with PID: $PB_PID"
         echo_info "To view logs: tail -f ${LOG_FILE}"
