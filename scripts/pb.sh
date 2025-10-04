@@ -23,7 +23,7 @@ if [ -z "$PB_PROJECT_DIR" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
 fi
 
 # Load utils
-source "$SCRIPT_DIR/scripts/utils.sh"
+source "$SCRIPT_DIR/utils.sh"
 # Load environment for help display
 load_env
 
@@ -266,7 +266,7 @@ shift
 # Handle global commands (no environment specified)
 case $FIRST_ARG in
     install)
-        exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
+        exec "$SCRIPT_DIR/install-pocketbase.sh" "$@"
         ;;
     upgrade)
         show_upgrade_options
@@ -275,10 +275,10 @@ case $FIRST_ARG in
         show_status
         ;;
     stop-all)
-        exec "$SCRIPT_DIR/scripts/stop.sh" all "$@"
+        exec "$SCRIPT_DIR/stop.sh" all "$@"
         ;;
     clean-all)
-        exec "$SCRIPT_DIR/scripts/clean.sh" all "$@"
+        exec "$SCRIPT_DIR/clean.sh" all "$@"
         ;;
     dev|test)
         # Environment-specific commands
@@ -297,13 +297,13 @@ case $FIRST_ARG in
         case $COMMAND in
             start)
                 if [ "$ENVIRONMENT" = "dev" ]; then
-                    exec "$SCRIPT_DIR/scripts/pb-dev.sh" "$@"
+                    exec "$SCRIPT_DIR/pb-dev.sh" "$@"
                 else
-                    exec "$SCRIPT_DIR/scripts/pb-test.sh" "$@"
+                    exec "$SCRIPT_DIR/pb-test.sh" "$@"
                 fi
                 ;;
             stop)
-                exec "$SCRIPT_DIR/scripts/stop.sh" "$ENVIRONMENT" "$@"
+                exec "$SCRIPT_DIR/stop.sh" "$ENVIRONMENT" "$@"
                 ;;
             setup)
                 # Load environment-specific configuration and setup admin
@@ -316,10 +316,10 @@ case $FIRST_ARG in
                 fi
                 ;;
             seed-users)
-                exec "$SCRIPT_DIR/scripts/seed-users.sh" "$ENVIRONMENT" "$@"
+                exec "$SCRIPT_DIR/seed-users.sh" "$ENVIRONMENT" "$@"
                 ;;
             clean)
-                exec "$SCRIPT_DIR/scripts/clean.sh" "$ENVIRONMENT" "$@"
+                exec "$SCRIPT_DIR/clean.sh" "$ENVIRONMENT" "$@"
                 ;;
             status)
                 show_env_status "$ENVIRONMENT"
