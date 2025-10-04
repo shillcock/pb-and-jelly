@@ -1,62 +1,89 @@
-# PocketBase Development Tools
+# PB & Jelly
 
-A comprehensive toolkit for developing and testing applications with PocketBase locally, with separate environments for development and testing.
+A core/template toolkit for developing and testing applications with PocketBase locally. Like peanut butter and jelly, PocketBase and your project are better together! 🥜🍇
+
+pb-and-jelly provides scripts (**core**) that manage self-contained PocketBase setups (**template**) in your projects.
+
+## Architecture
+
+pb-and-jelly uses a **core/template** design:
+
+- **Core** (`pb-and-jelly/scripts/`): All logic and scripts stay in pb-and-jelly repo
+- **Template** (`pb-and-jelly/template/`): Self-contained project setup that gets copied to each project
+- **Projects**: Each initialized project has its own binary, data, version, and configuration
+
+**Benefits:**
+- Each project is fully independent with its own PocketBase version
+- Update pb-and-jelly (git pull) without affecting project data
+- Simple mental model: core has logic, template has data
 
 ## Features
 
 - **Dual Environment Support**: Separate `dev` and `test` environments with isolated databases
-- **Automatic Setup**: Download PocketBase, create admin users, and set up test users automatically
-- **Environment-Specific Configuration**: Use `.env.dev` and `.env.test` for environment-specific settings, `.env.local` for global overrides
+- **Self-Contained Projects**: Each project has own PocketBase binary, data, and version
+- **Version Pinning Per Project**: Control PocketBase version independently in each project
+- **Automatic Setup**: Download PocketBase, create admin users, and seed test users
 - **Unified CLI**: Single command interface for all operations
 - **Background Testing**: Run test servers in background for automated testing
-- **Easy Cleanup**: Clean environments with confirmation prompts
+- **JavaScript Extensions**: Support for hooks and migrations
 
 ## Quick Start
 
-1. **Clone or set up the project:**
-   ```bash
-   git clone <your-repo> pb-tools
-   cd pb-tools
-   ```
+### 1. Clone pb-and-jelly (one time)
 
-2. **Configure users (optional):**
-   ```bash
-   # Environment-specific configs are hardcoded and ready to use
-   # Create seed files for custom user setups (see User Seed Files section)
-   ```
+```bash
+git clone <your-repo> ~/Code/pb-and-jelly
+```
 
-3. **Install PocketBase:**
-   ```bash
-   ./pb.sh install
-   ```
+### 2. Initialize in your project
 
-4. **Start development server:**
-   ```bash
-   ./pb.sh dev start
-   ```
+```bash
+cd /path/to/your-project
+~/Code/pb-and-jelly/scripts/init-project.sh .
+```
 
-5. **Seed users (in another terminal):**
-   ```bash
-   # Create dev/dev-users.json first (see example files), then:
-   ./pb.sh dev seed-users
-   ```
+This creates a `pocketbase/` directory with:
+- `pb.sh` - Wrapper script that calls pb-and-jelly
+- `bin/` - PocketBase binary location
+- `dev/` and `test/` - Environment directories
+- `pb_hooks/` and `pb_migrations/` - JavaScript extensions
+- `.pb-version` - Version pinning for this project
+- `.pb-core` - Path to pb-and-jelly (gitignored)
 
-6. **Access your PocketBase:**
-   - API: http://127.0.0.1:8090
-   - Admin UI: http://127.0.0.1:8090/_/
+### 3. Install and start
+
+```bash
+cd pocketbase
+./pb.sh install           # Downloads PocketBase binary
+./pb.sh dev start         # Starts development server
+
+# In another terminal
+./pb.sh dev setup         # Creates admin user
+./pb.sh dev seed-users    # Seeds test users (optional)
+```
+
+### 4. Access your PocketBase
+
+- API: http://127.0.0.1:8090
+- Admin UI: http://127.0.0.1:8090/_/
 
 ## Configuration
 
-### Configuration Files
+All configuration files live in your project's `pocketbase/` directory (created by `init-project.sh`):
 
-This toolkit uses configuration files for different purposes:
+### Version Pinning
 
-**Configuration Files (tracked in git):**
-- `.pb-version` - PocketBase version pinning
-- `dev/dev-users.json` - User seed data for development environment (optional)
-- `test/test-users.json` - User seed data for test environment (optional)
+- `pocketbase/.pb-version` - Controls which PocketBase version gets installed for this project
+- Each project can use a different PocketBase version
+- Edit this file and run `./pb.sh install` to change versions
 
-**Environment Settings (hardcoded):**
+### User Seed Files
+
+- `pocketbase/dev/dev-users.json` - Development environment users (optional)
+- `pocketbase/test/test-users.json` - Test environment users (optional)
+
+### Environment Settings (hardcoded)
+
 - **Dev**: Port 8090, Host 127.0.0.1
 - **Test**: Port 8091, Host 127.0.0.1
 
@@ -108,30 +135,9 @@ For setting up multiple users (useful for testing scenarios), create JSON seed f
 1. Seed file credentials (if available)
 2. Hardcoded fallback values (built-in)
 
-
-### Version Pinning
-
-For CI/CD reliability, this toolkit uses a `.pb-version` file (similar to `.node-version`) to pin PocketBase to a specific version:
-
-- **`.pb-version`**: Contains the PocketBase version (e.g., `0.30.1`)
-- **Install behavior**: Always installs the pinned version, never "latest"
-- **Upgrade management**: Use `./pb.sh upgrade` to see available versions and upgrade guidance
-- **Team consistency**: Everyone gets the same version when they clone the repo
-
-**Benefits:**
-- Reproducible builds in CI/CD pipelines
-- No unexpected API changes from automatic updates
-- Controlled upgrade process
-- Follows standard version pinning conventions (like `.node-version`)
-
-**To upgrade:**
-1. Run `./pb.sh upgrade` to see available versions
-2. Update the version number in `.pb-version`
-3. Run `./pb.sh install` to install the new version
-
 ## Commands
 
-### Main Interface: `./pb.sh <environment> <command>` or `./pb.sh <global-command>`
+All commands are run from your project's `pocketbase/` directory using the wrapper script `./pb.sh`.
 
 **Environment Commands:**
 | Command | Description | Example |
@@ -152,28 +158,16 @@ For CI/CD reliability, this toolkit uses a `.pb-version` file (similar to `.node
 | `stop-all` | Stop all running servers | `./pb.sh stop-all` |
 | `clean-all` | Clean all environment data | `./pb.sh clean-all --force` |
 
-### Direct Scripts (Advanced Usage)
+## Updating pb-and-jelly
 
-**⚠️ Most users should use `./pb.sh` instead of direct scripts.**
+Since pb-and-jelly uses a core/template architecture, you can safely update the core without affecting your projects:
 
-For advanced usage, automation, or debugging, you can run scripts directly:
+```bash
+cd ~/Code/pb-and-jelly
+git pull
+```
 
-| Script | Purpose | Recommendation |
-|--------|---------|----------------|
-| `./scripts/pb-dev.sh` | Start development server directly | Use `./pb.sh dev start` instead |
-| `./scripts/pb-test.sh` | Start test server directly | Use `./pb.sh test start` instead |
-| `./scripts/install-pocketbase.sh` | Install PocketBase | Use `./pb.sh install` instead |
-| `./scripts/seed-users.sh <env>` | Seed users from JSON (requires environment) | Use `./pb.sh <env> seed-users` instead |
-| `./scripts/clean.sh <env>` | Clean environments (requires environment) | Use `./pb.sh <env> clean` instead |
-| `./scripts/stop.sh <env>` | Stop servers (requires environment) | Use `./pb.sh <env> stop` instead |
-
-**When to use direct scripts:**
-- Custom automation scripts
-- Debugging server startup issues
-- Integration with external build systems
-- When you need to bypass pb.sh's argument parsing
-
-**For all regular usage, use the unified `./pb.sh` interface.**
+Your project's `pocketbase/` directories remain unchanged. The updated scripts will be used next time you run commands in your projects.
 
 ## Usage Examples
 
@@ -304,7 +298,7 @@ Examples:
 ## Directory Structure
 
 ```
-pb-tools/
+pb-and-jelly/
 ├── .env.example          # Example environment config
 ├── .env.local           # Your local config (gitignored)
 ├── .gitignore           # Ignore patterns

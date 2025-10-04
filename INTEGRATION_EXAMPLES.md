@@ -1,27 +1,32 @@
-# pb-tools Integration Examples
+# pb-and-jelly Integration Examples
 
-This document shows how to integrate pb-tools into various project setups for easy testing and development.
+This document shows how to integrate pb-and-jelly into various project setups for easy testing and development.
 
 ## Project Structure
 
-After running `pb-tools init`, your project will have:
+After running `~/Code/pb-and-jelly/scripts/init-project.sh .` in your project, you'll have:
 
 ```
 your-project/
-├── pocketbase/           # All PocketBase files grouped here
+├── pocketbase/           # All PocketBase files (self-contained)
 │   ├── pb.sh            # Wrapper script
+│   ├── bin/             # PocketBase binary (installed)
 │   ├── dev/             # Development environment
-│   │   └── dev-users.json
+│   │   ├── dev-users.json
+│   │   └── pb_data/     # Dev database (gitignored)
 │   ├── test/            # Test environment  
-│   │   └── test-users.json
-│   ├── pb_hooks/        # JavaScript hooks (shared between dev/test)
+│   │   ├── test-users.json
+│   │   └── pb_data/     # Test database (gitignored)
+│   ├── pb_hooks/        # JavaScript hooks (shared)
 │   │   └── main.pb.js
-│   ├── pb_migrations/   # JavaScript migrations (shared between dev/test)
+│   ├── pb_migrations/   # JavaScript migrations (shared)
 │   │   └── 1000000000_initial_setup.js
-│   └── .pb-project      # Config pointing to pb-tools
+│   ├── .pb-version      # Version pinning
+│   ├── .pb-core    # Path to pb-and-jelly (gitignored)
+│   └── .gitignore       # Project-specific ignores
 ├── src/                 # Your application code
 ├── tests/               # Your test files
-└── package.json         # With pb-tools scripts
+└── package.json         # With pb-and-jelly scripts
 ```
 
 ## Package.json Scripts Integration
@@ -316,12 +321,11 @@ services:
 ### Quick Development Setup
 
 ```bash
-# Initialize pb-tools in your project
-cd /Users/scott/Code/pb-tools
-./pb.sh init /path/to/your/project
+# Initialize pb-and-jelly in your project
+cd /path/to/your/project
+~/Code/pb-and-jelly/scripts/init-project.sh .
 
 # Setup for development
-cd /path/to/your/project
 npm run pb:install
 npm run pb:dev:setup
 
