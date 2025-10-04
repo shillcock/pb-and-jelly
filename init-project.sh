@@ -42,15 +42,15 @@ show_help() {
     echo "                      (defaults to current directory)"
     echo ""
     echo "What this creates:"
-    echo "  pocketbase/         Directory containing all PocketBase files"
-    echo "  pocketbase/pb.sh    Wrapper script that calls pb-and-jelly"
-    echo "  pocketbase/bin/     PocketBase binary location"
-    echo "  pocketbase/dev/     Development environment"
-    echo "  pocketbase/test/    Test environment"
-    echo "  pocketbase/pb_hooks/     JavaScript hooks"
-    echo "  pocketbase/pb_migrations/ JavaScript migrations"
-    echo "  pocketbase/.pb-version   Version pinning"
-    echo "  pocketbase/.pb-core Path to pb-and-jelly (gitignored)"
+    echo "  pocketbase/                 Directory containing all PocketBase files"
+    echo "  pocketbase/pb.sh            Wrapper script that calls pb-and-jelly"
+    echo "  pocketbase/bin/             PocketBase binary location"
+    echo "  pocketbase/dev/             Development environment"
+    echo "  pocketbase/test/            Test environment"
+    echo "  pocketbase/pb_hooks/        JavaScript hooks"
+    echo "  pocketbase/pb_migrations/   JavaScript migrations"
+    echo "  pocketbase/.pb-version      Version pinning"
+    echo "  pocketbase/.pb-core         Path to pb-and-jelly (gitignored)"
     echo ""
     echo "Examples:"
     echo "  cd /path/to/my-project && $0 ."
@@ -126,8 +126,9 @@ echo "  2. ./pb.sh install"
 echo "  3. ./pb.sh dev start"
 echo ""
 echo "Recommended package.json scripts:"
-echo '  "pb:install": "./pocketbase/pb.sh install",'
-echo '  "pb:dev": "./pocketbase/pb.sh dev start",'
-echo '  "pb:test:start": "./pocketbase/pb.sh test start --quiet --reset",'
-echo '  "pb:test:setup": "./pocketbase/pb.sh test setup && ./pocketbase/pb.sh test seed-users",'
-echo '  "pb:test:stop": "./pocketbase/pb.sh test stop"'
+echo '  "pb": "./pocketbase/pb.sh dev start",'
+echo '  "pb:stop": "./pocketbase/pb.sh dev stop",'
+echo '  "pb:status": "./pocketbase/pb.sh status",'
+echo '  "pb:test": "./pocketbase/pb.sh test start --full --quiet",'
+echo '  "pb:test:stop": "./pocketbase/pb.sh test reset --force",'
+echo '  "pb:test:clean": "./pocketbase/pb.sh test clean-data"'

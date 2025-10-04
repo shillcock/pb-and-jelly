@@ -158,6 +158,7 @@ All commands are run from your project's `pocketbase/` directory using the wrapp
 | `upgrade` | Show available versions and upgrade guidance | `./pb.sh upgrade` |
 | `status` | Show status of all environments | `./pb.sh status` |
 | `stop-all` | Stop all running servers | `./pb.sh stop-all` |
+| `kill-all` | Force kill all PocketBase processes | `./pb.sh kill-all --force` |
 | `clean-all` | Clean all environment data | `./pb.sh clean-all --force` |
 
 ## Updating pb-and-jelly

@@ -45,6 +45,7 @@ show_help() {
     echo "  upgrade             Show available versions and upgrade PocketBase"
     echo "  status              Show status of all environments"
     echo "  stop-all            Stop all running servers"
+    echo "  kill-all            Force kill all PocketBase processes"
     echo "  clean-all           Clean all environment data"
     echo ""
     echo "Options (varies by command):"
@@ -276,6 +277,9 @@ case $FIRST_ARG in
         ;;
     stop-all)
         exec "$SCRIPT_DIR/stop.sh" all "$@"
+        ;;
+    kill-all)
+        exec "$SCRIPT_DIR/kill-all.sh" "$@"
         ;;
     clean-all)
         exec "$SCRIPT_DIR/clean.sh" all "$@"

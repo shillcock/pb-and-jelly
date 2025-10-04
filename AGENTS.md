@@ -61,6 +61,8 @@ cd /path/to/your-project/pocketbase
 ### Status/Cleanup
 ```bash
 ./pb.sh status              # Show all environments
+./pb.sh stop-all            # Stop all servers
+./pb.sh kill-all --force    # Force kill all PocketBase processes
 ./pb.sh clean-all --force   # Clean all data
 ```
 
