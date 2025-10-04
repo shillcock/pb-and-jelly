@@ -76,8 +76,10 @@ import { execSync } from "child_process";
 
 // Global test setup - runs once for entire suite
 beforeAll(async () => {
-  // Full setup: admin + start + seed users
+  // Full setup: ensures admin user exists and starts the server
   execSync("./pocketbase/pb.sh test start --full --quiet", { stdio: "inherit" });
+  // Optional: load shared fixtures from test/test-users.json
+  // execSync("./pocketbase/pb.sh test seed-users", { stdio: "inherit" });
   
   // Wait for server to be fully ready
   await Bun.sleep(1000);
@@ -165,8 +167,10 @@ const { execSync } = require("child_process");
 
 // Global test setup - runs once for entire suite
 beforeAll(async () => {
-  // Full setup: admin + start + seed users
+  // Full setup: ensures admin user exists and starts the server
   execSync("./pocketbase/pb.sh test start --full --quiet", { stdio: "inherit" });
+  // Optional: load shared fixtures
+  // execSync("./pocketbase/pb.sh test seed-users", { stdio: "inherit" });
   
   // Wait for server to be fully ready
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -209,6 +213,8 @@ import { execSync } from "child_process";
 
 beforeAll(async () => {
   execSync("./pocketbase/pb.sh test start --full --quiet", { stdio: "inherit" });
+  // Optional: load shared fixtures
+  // execSync("./pocketbase/pb.sh test seed-users", { stdio: "inherit" });
   await new Promise(resolve => setTimeout(resolve, 1000));
 }, 30000);
 
@@ -504,15 +510,55 @@ bun test --watch
 ./pocketbase/pb.sh test reset --force
 ```
 
+## PocketBase Test Helpers
+
+### TypeScript user utilities
+
+The template includes `pocketbase/test/helpers/pbTestUsers.ts` for managing
+throwaway users during automated testing. It authenticates with the admin user
+provisioned by `./pb.sh test start --full --quiet`, lazily creates the `users`
+collection if needed, and tracks created accounts so they can be deleted after
+each test.
+
+```typescript
+import { beforeAll, afterEach, describe, it, expect } from "vitest";
+import {
+  ensureTestAdmin,
+  createTestUser,
+  cleanupTestUsers,
+} from "../pocketbase/test/helpers/pbTestUsers";
+
+describe("PocketBase helpers", () => {
+  beforeAll(async () => {
+    await ensureTestAdmin();
+  });
+
+  afterEach(async () => {
+    await cleanupTestUsers();
+  });
+
+  it("creates an isolated user", async () => {
+    const user = await createTestUser({ name: "Helper User" });
+    expect(user.email).toBeTruthy();
+  });
+});
+```
+
+Use `cleanupTestUsers()` or `deleteTestUser(id)` to remove records after each
+test, and fall back to `./pb.sh test seed-users` whenever you need the shared
+fixtures from `test/test-users.json`.
+
 ## Performance Tips
 
 ### Large Test Suites
 
 For test suites with 100+ tests:
 
-1. **Use `test start --full --quiet`** in `beforeAll` - sets up once
-2. **Use `test clean-data`** in `beforeEach` - fast cleanup (~50-100ms per test)
-3. **Use `test reset --force`** in `afterAll` - complete cleanup
+1. **Use `test start --full --quiet`** in `beforeAll` - ensures admin exists and starts the server
+2. *(Optional)* **Run `test seed-users`** once if you need the shared fixtures from `test/test-users.json`
+3. **Use `test clean-data`** in `beforeEach` - fast cleanup (~50-100ms per test)
+4. **Use `pocketbase/test/helpers/pbTestUsers.ts`** to create throwaway users inside tests
+5. **Use `test reset --force`** in `afterAll` - complete cleanup
 
 This pattern reduces test suite time from 5-8 minutes to ~30 seconds for 100 tests.
 
@@ -533,16 +579,17 @@ bun test --watch
 
 ### CI/CD Optimization
 
-In CI environments, the `--full` flag ensures everything is ready in one command:
+In CI environments, the `--full` flag ensures the admin user exists and the server is ready:
 
 ```bash
 ./pocketbase/pb.sh test start --full --quiet
+./pocketbase/pb.sh test seed-users            # Optional shared fixtures
 ```
 
 This replaces:
 ```bash
 # Old way (slower)
 ./pocketbase/pb.sh test start --quiet --reset
-./pocketbase/pb.sh test setup
-./pocketbase/pb.sh test seed-users
+./pocketbase/pb.sh test setup                 # <-- Only needed before `--full`
+./pocketbase/pb.sh test seed-users            # <-- Run explicitly when you need fixtures
 ```

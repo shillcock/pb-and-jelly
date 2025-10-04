@@ -43,6 +43,8 @@ cd /path/to/your-project/pocketbase
 
 # Suite setup (once) - full initialization
 ./pb.sh test start --full --quiet
+# Optional: load shared fixtures
+# ./pb.sh test seed-users
 
 # Between tests - fast data cleanup
 ./pb.sh test clean-data
@@ -54,10 +56,40 @@ cd /path/to/your-project/pocketbase
 **Manual testing:**
 ```bash
 ./pb.sh test start --quiet --reset
+# Optional: load shared fixtures
 ./pb.sh test seed-users
 # Run your tests
 ./pb.sh test stop
 ```
+
+### Maintainer sandbox workflow
+
+When working from the `pb-and-jelly` repo, always spin up a throwaway project
+before running any `pb.sh` commands. This keeps `PB_PROJECT_DIR` pointed at the
+wrapper script and avoids polluting the core repo.
+
+```bash
+SANDBOX=$(mktemp -d)
+~/Code/pb-and-jelly/init-project.sh "$SANDBOX"
+cd "$SANDBOX/pocketbase"
+
+# Start test server (use an alternate port if 8091 is busy)
+./pb.sh test start --full --quiet
+# ./pb.sh test start --full --quiet --port 18091
+
+# Optional fixtures + cleanup helpers
+./pb.sh test seed-users
+./pb.sh test clean-data
+
+# Tear everything down when done
+./pb.sh test reset --force
+rm -rf "$SANDBOX"
+```
+
+If a PocketBase process is already bound to the desired port, stop it with
+`./pb.sh kill-all --force` or pass a custom `--port`. The scripts will use any
+PocketBase binary already on your `PATH` when the sandbox has not downloaded a
+local one yet.
 
 ### Migrations
 ```bash
@@ -80,7 +112,9 @@ cd /path/to/your-project/pocketbase
 - **Bash**: Use `set -e`, utility logging (`echo_info`, `echo_warn`), `get_project_dir()` for paths, `load_env <environment>` for config
 - **Wrapper requirement**: Scripts require `PB_PROJECT_DIR` set by project wrapper
 - **Always use wrapper**: Run commands via `project/pocketbase/pb.sh`, never call core `pb-and-jelly/pb.sh` directly
-- **Tests**: Use only test environment (port 8091), never dev (port 8090)
+- **Tests**: Use only test environment (port 8091), never dev (port 8090). Create
+  throwaway users via `pocketbase/test/helpers/pbTestUsers.ts` during tests, or
+  run `./pb.sh test seed-users` to load `test/test-users.json` manually.
 
 ## Git Conventions
 

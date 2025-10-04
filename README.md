@@ -285,7 +285,7 @@ Options:
   --port PORT        Set port (default: 8091)
   --host HOST        Set host (default: 127.0.0.1)
   --reset           Reset database before starting
-  --full            Full setup: setup admin + start + seed users (for testing)
+  --full            Full setup: ensure admin user + start server (no auto user seeding)
   --quiet, -q       Suppress output
   --help, -h        Show help
 
@@ -293,8 +293,13 @@ Examples:
   ./pb.sh test start                      # Start interactive
   ./pb.sh test start --quiet              # Start with no output
   ./pb.sh test start --reset              # Reset DB and start
-  ./pb.sh test start --full --quiet       # Full setup for testing (recommended)
+  ./pb.sh test start --full --quiet && \\
+    ./pb.sh test seed-users               # Full setup + optional fixture users
 ```
+
+> Tip: `--full` ensures the admin user exists and starts the server. Load
+> `test/test-users.json` with `./pb.sh test seed-users`, or create throwaway
+> accounts in your tests via `pocketbase/test/helpers/pbTestUsers.ts`.
 
 ### User Seeding (`./pb.sh <env> seed-users`)
 
@@ -523,6 +528,35 @@ This toolkit is for local development only. For production:
 2. Use the shared utilities in `scripts/utils.sh`
 3. Update this README for new features
 4. Test all environments (dev/test) before committing
+
+### Testing changes locally
+
+The CLI scripts expect to be called from a project wrapper that exports
+`PB_PROJECT_DIR`. When developing inside the `pb-and-jelly` repository, create a
+throwaway project first, exercise the commands there, then clean it up:
+
+```bash
+SANDBOX=$(mktemp -d)
+~/Code/pb-and-jelly/init-project.sh "$SANDBOX"
+cd "$SANDBOX/pocketbase"
+
+# Start the test server (switch ports if 8091 is already in use)
+./pb.sh test start --full --quiet
+# ./pb.sh test start --full --quiet --port 18091
+
+# Optional fixtures + data reset
+./pb.sh test seed-users
+./pb.sh test clean-data
+
+# Tear down when finished
+./pb.sh test reset --force
+rm -rf "$SANDBOX"
+```
+
+If a PocketBase server is already listening on the target port, stop it with
+`./pb.sh kill-all --force` or pick a free port via `--port`. The sandbox will use
+any PocketBase binary already on your system `PATH` unless you install one
+locally.
 
 ## License
 

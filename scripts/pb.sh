@@ -372,7 +372,7 @@ case $FIRST_ARG in
                 echo "Examples:"
                 echo "  $0 $ENVIRONMENT start                    # Start server"
                 if [ "$ENVIRONMENT" = "test" ]; then
-                    echo "  $0 $ENVIRONMENT start --full --quiet     # Full setup for testing"
+                    echo "  $0 $ENVIRONMENT start --full --quiet     # Full setup for testing (admin only)"
                     echo "  $0 $ENVIRONMENT start --quiet --reset    # Start with clean DB"
                     echo "  $0 $ENVIRONMENT reset --force            # Stop and clean"
                 else

@@ -23,18 +23,20 @@ This directory contains PocketBase configuration for this project.
 ## Testing
 
 ```bash
-# Start test server
-./pb.sh test start --quiet --reset
+# Suite setup (once per test run)
+./pb.sh test start --full --quiet
+./pb.sh test seed-users          # Optional: load users from test/test-users.json
 
-# Setup test environment
-./pb.sh test setup
-./pb.sh test seed-users
+# Between tests (fast cleanup)
+./pb.sh test clean-data
 
-# Run your tests here
-
-# Stop test server
-./pb.sh test stop
+# Suite teardown
+./pb.sh test reset --force
 ```
+
+> Prefer creating throwaway users inside tests with
+> `test/helpers/pbTestUsers.ts`. The helper authenticates with the admin account
+> provisioned by `--full` and can create or clean up records on demand.
 
 ## Configuration
 
@@ -62,6 +64,17 @@ Example structure:
   ]
 }
 ```
+
+### Test Helpers
+- `test/helpers/pbTestUsers.ts` - TypeScript utilities for creating and cleaning
+  up test users via the PocketBase API.
+
+Use `createTestUser()` inside tests to generate throwaway accounts and
+`cleanupTestUsers()` to remove them after each test. These helpers log in with
+the test admin created by `./pb.sh test start --full --quiet` and will create the
+`users` collection automatically if it is missing. You can still load
+`test/test-users.json` through `./pb.sh test seed-users` whenever you need the
+shared fixtures.
 
 ### JavaScript Extensions
 

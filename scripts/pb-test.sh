@@ -87,7 +87,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --host HOST        Set host (default: 127.0.0.1)"
             echo "  --foreground, -fg  Run in foreground (default: background)"
             echo "  --reset           Reset test database before starting"
-            echo "  --full            Full setup: setup admin + start + seed users"
+            echo "  --full            Full setup: ensure admin user + start server"
             echo "  --quiet, -q       Suppress output (useful for testing)"
             echo "  --help, -h        Show this help message"
             echo ""
@@ -98,7 +98,7 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 --port 9091              # Start on port 9091"
             echo "  $0 --foreground --quiet     # Start in foreground, no output"
             echo "  $0 --reset                  # Reset DB and start"
-            echo "  $0 --full --quiet           # Full setup for testing"
+            echo "  $0 --full --quiet           # Full setup for testing (no auto user seeding)"
             exit 0
             ;;
         *)
@@ -198,7 +198,7 @@ if [ "$BACKGROUND" = true ]; then
         echo_info "To view logs: tail -f ${LOG_FILE}"
     fi
     
-    # If --full is specified, wait for server and seed users
+    # If --full is specified, wait for server to become responsive
     if [ "$FULL_SETUP" = true ]; then
         if [ "$QUIET" = false ]; then
             echo_info "Waiting for server to be ready..."
@@ -211,20 +211,8 @@ if [ "$BACKGROUND" = true ]; then
             fi
             sleep 0.5
         done
-        
         if [ "$QUIET" = false ]; then
-            echo_info "Seeding users..."
-        fi
-        
-        # Run seed-users script
-        if "$SCRIPT_DIR/seed-users.sh" "test" >/dev/null 2>&1; then
-            if [ "$QUIET" = false ]; then
-                echo_success "Users seeded successfully"
-            fi
-        else
-            if [ "$QUIET" = false ]; then
-                echo_warn "User seeding failed (this is OK if users already exist)"
-            fi
+            echo_success "Test server ready. Admin user ensured; seed regular users manually if needed."
         fi
     fi
 else
