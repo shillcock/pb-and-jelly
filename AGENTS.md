@@ -87,3 +87,4 @@ cd /path/to/your-project/pocketbase
 - **Staging**: Never use `git add .` - specify individual files
 - **Commit messages**: Write clear, concise commit messages that describe what and why
 - **No AI attribution**: Never include co-authoring, "co-written by," "co-committed by," or any collaboration by AI agents in commit messages. Commits should appear as regular human commits without AI attribution.
+- **Never push without permission**: Never run `git push` without explicit user instruction. Always ask for permission before pushing commits to remote repositories.
