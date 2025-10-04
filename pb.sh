@@ -27,6 +27,7 @@ show_help() {
     echo "Global Commands:"
     echo "  install             Download and install PocketBase binary"
     echo "  upgrade             Show available versions and upgrade PocketBase"
+    echo "  init [path]         Initialize pb-tools in another project"
     echo "  status              Show status of all environments"
     echo "  stop-all            Stop all running servers"
     echo "  clean-all           Clean all environment data"
@@ -36,10 +37,10 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 install                      # Download PocketBase"
+    echo "  $0 init /path/to/project        # Initialize pb-tools in another project"
     echo "  $0 upgrade                      # Show available versions and upgrade"
     echo "  $0 dev start                    # Start dev server"
-    echo "  $0 dev start --background       # Start dev server in background"
-    echo "  $0 test start --background      # Start test server in background"
+    echo "  $0 test start --quiet --reset   # Start test server with clean DB"
     echo "  ./pb.sh dev seed-users               # Seed users in dev environment"
     echo "  $0 test stop                    # Stop test server"
     echo "  $0 dev clean --force            # Clean dev environment"
@@ -253,6 +254,9 @@ case $FIRST_ARG in
     install)
         exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
         ;;
+    init)
+        exec "$SCRIPT_DIR/scripts/init-project.sh" "$@"
+        ;;
     upgrade)
         show_upgrade_options
         ;;
@@ -323,7 +327,7 @@ case $FIRST_ARG in
                 echo "  status        Show $ENVIRONMENT environment status"
                 echo "Examples:"
                 echo "  $0 $ENVIRONMENT start                    # Start server"
-                echo "  $0 $ENVIRONMENT start --background       # Start in background (test only)"
+                echo "  $0 $ENVIRONMENT start --quiet --reset    # Start with clean DB (test only)"
                 echo "  $0 $ENVIRONMENT setup                    # Setup admin user first"
                 echo "  $0 $ENVIRONMENT seed-users               # Seed users from JSON"
                 echo "  $0 $ENVIRONMENT clean --force            # Clean without confirmation"

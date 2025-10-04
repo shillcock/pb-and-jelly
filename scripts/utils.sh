@@ -91,6 +91,13 @@ load_env() {
 
 # Get project directory
 get_project_dir() {
+    # If PB_PROJECT_DIR is set (from wrapper script), use that
+    if [ -n "$PB_PROJECT_DIR" ]; then
+        echo "$PB_PROJECT_DIR"
+        return 0
+    fi
+    
+    # Otherwise, find project root relative to script directory
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local project_dir="$script_dir"
     
