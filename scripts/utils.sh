@@ -109,7 +109,7 @@ check_pocketbase_binary() {
     
     # Fallback to global installation
     if command -v pocketbase >/dev/null 2>&1; then
-        echo "pocketbase"
+        which pocketbase
         return 0
     fi
     
