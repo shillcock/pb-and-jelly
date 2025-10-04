@@ -49,6 +49,7 @@ ARGS=()
 BACKGROUND=true
 RESET_DB=false
 QUIET=false
+FULL_SETUP=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -72,6 +73,10 @@ while [[ $# -gt 0 ]]; do
             QUIET=true
             shift
             ;;
+        --full)
+            FULL_SETUP=true
+            shift
+            ;;
         --help|-h)
             echo "PocketBase Test Environment"
             echo ""
@@ -82,6 +87,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --host HOST        Set host (default: 127.0.0.1)"
             echo "  --foreground, -fg  Run in foreground (default: background)"
             echo "  --reset           Reset test database before starting"
+            echo "  --full            Full setup: setup admin + start + seed users"
             echo "  --quiet, -q       Suppress output (useful for testing)"
             echo "  --help, -h        Show this help message"
             echo ""
@@ -92,6 +98,7 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 --port 9091              # Start on port 9091"
             echo "  $0 --foreground --quiet     # Start in foreground, no output"
             echo "  $0 --reset                  # Reset DB and start"
+            echo "  $0 --full --quiet           # Full setup for testing"
             exit 0
             ;;
         *)
@@ -107,6 +114,21 @@ if [ "$RESET_DB" = true ]; then
         echo_info "Resetting test database..."
     fi
     rm -rf "$TEST_DIR/pb_data"
+fi
+
+# Run admin setup first if --full is specified
+if [ "$FULL_SETUP" = true ]; then
+    if [ "$QUIET" = false ]; then
+        echo_info "Running admin setup..."
+    fi
+    if setup_admin_user "test" "$QUIET"; then
+        if [ "$QUIET" = false ]; then
+            echo_success "Admin setup complete"
+        fi
+    else
+        echo_error "Admin setup failed"
+        exit 1
+    fi
 fi
 
 # Default to 'serve' command if no command specified
@@ -161,6 +183,36 @@ if [ "$BACKGROUND" = true ]; then
     if [ "$QUIET" = false ]; then
         echo_info "PocketBase Test Server started with PID: $PB_PID"
         echo_info "To view logs: tail -f ${LOG_FILE}"
+    fi
+    
+    # If --full is specified, wait for server and seed users
+    if [ "$FULL_SETUP" = true ]; then
+        if [ "$QUIET" = false ]; then
+            echo_info "Waiting for server to be ready..."
+        fi
+        
+        # Wait for server to be ready (max 10 seconds)
+        for i in {1..20}; do
+            if curl -s "http://${TEST_HOST}:${TEST_PORT}/api/health" >/dev/null 2>&1; then
+                break
+            fi
+            sleep 0.5
+        done
+        
+        if [ "$QUIET" = false ]; then
+            echo_info "Seeding users..."
+        fi
+        
+        # Run seed-users script
+        if "$SCRIPT_DIR/seed-users.sh" "test" >/dev/null 2>&1; then
+            if [ "$QUIET" = false ]; then
+                echo_success "Users seeded successfully"
+            fi
+        else
+            if [ "$QUIET" = false ]; then
+                echo_warn "User seeding failed (this is OK if users already exist)"
+            fi
+        fi
     fi
 else
     # Run in foreground

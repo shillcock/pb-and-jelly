@@ -321,6 +321,20 @@ case $FIRST_ARG in
             clean)
                 exec "$SCRIPT_DIR/clean.sh" "$ENVIRONMENT" "$@"
                 ;;
+            clean-data)
+                exec "$SCRIPT_DIR/clean-data.sh" "$ENVIRONMENT" "$@"
+                ;;
+            reset)
+                # Only available for test environment
+                if [ "$ENVIRONMENT" != "test" ]; then
+                    echo_error "reset command is only available for test environment"
+                    exit 1
+                fi
+                # Stop then clean
+                "$SCRIPT_DIR/stop.sh" "$ENVIRONMENT" "$@"
+                "$SCRIPT_DIR/clean.sh" "$ENVIRONMENT" --force
+                echo_success "Test environment reset complete"
+                ;;
             status)
                 show_env_status "$ENVIRONMENT"
                 ;;
@@ -335,12 +349,23 @@ case $FIRST_ARG in
                 echo "  setup         Set up admin user (without running server)"
                 echo "  seed-users    Seed users from JSON file"
                 echo "  clean         Clean $ENVIRONMENT environment data"
+                echo "  clean-data    Fast data cleanup (keeps server running)"
+                if [ "$ENVIRONMENT" = "test" ]; then
+                    echo "  reset         Stop and clean test environment"
+                fi
                 echo "  status        Show $ENVIRONMENT environment status"
                 echo "Examples:"
                 echo "  $0 $ENVIRONMENT start                    # Start server"
-                echo "  $0 $ENVIRONMENT start --quiet --reset    # Start with clean DB (test only)"
+                if [ "$ENVIRONMENT" = "test" ]; then
+                    echo "  $0 $ENVIRONMENT start --full --quiet     # Full setup for testing"
+                    echo "  $0 $ENVIRONMENT start --quiet --reset    # Start with clean DB"
+                    echo "  $0 $ENVIRONMENT reset --force            # Stop and clean"
+                else
+                    echo "  $0 $ENVIRONMENT start --quiet            # Start in quiet mode"
+                fi
                 echo "  $0 $ENVIRONMENT setup                    # Setup admin user first"
                 echo "  $0 $ENVIRONMENT seed-users               # Seed users from JSON"
+                echo "  $0 $ENVIRONMENT clean-data               # Fast cleanup (keeps server running)"
                 echo "  $0 $ENVIRONMENT clean --force            # Clean without confirmation"
                 ;;
             *)

@@ -35,10 +35,23 @@ cd /path/to/your-project/pocketbase
 ```
 
 ### Testing
+
+**Performance-optimized pattern (recommended):**
 ```bash
 cd /path/to/your-project/pocketbase
 
-# Start test environment
+# Suite setup (once) - full initialization
+./pb.sh test start --full --quiet
+
+# Between tests - fast data cleanup
+./pb.sh test clean-data
+
+# Suite teardown (once)
+./pb.sh test reset --force
+```
+
+**Manual testing:**
+```bash
 ./pb.sh test start --quiet --reset
 ./pb.sh test seed-users
 # Run your tests

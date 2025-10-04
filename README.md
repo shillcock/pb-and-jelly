@@ -147,6 +147,8 @@ All commands are run from your project's `pocketbase/` directory using the wrapp
 | `<env> setup` | Set up admin user | `./pb.sh dev setup` |
 | `<env> seed-users` | Seed users from JSON file | `./pb.sh dev seed-users` |
 | `<env> clean` | Clean environment data | `./pb.sh test clean --force` |
+| `<env> clean-data` | Fast data cleanup (keeps server running) | `./pb.sh test clean-data` |
+| `test reset` | Stop and clean test environment | `./pb.sh test reset --force` |
 | `<env> status` | Show environment status | `./pb.sh dev status` |
 
 **Global Commands:**
@@ -191,6 +193,19 @@ Your project's `pocketbase/` directories remain unchanged. The updated scripts w
 
 ### Testing Workflow
 
+**Performance-optimized (recommended for large test suites):**
+```bash
+# Suite setup (once) - full initialization: setup + start + seed
+./pb.sh test start --full --quiet
+
+# Between tests - fast data cleanup (milliseconds)
+./pb.sh test clean-data
+
+# Suite teardown (once)
+./pb.sh test reset --force
+```
+
+**Simple workflow:**
 ```bash
 # Start test server
 ./pb.sh test start --quiet
@@ -245,13 +260,15 @@ Options:
   --port PORT        Set port (default: 8091)
   --host HOST        Set host (default: 127.0.0.1)
   --reset           Reset database before starting
+  --full            Full setup: setup admin + start + seed users (for testing)
   --quiet, -q       Suppress output
   --help, -h        Show help
 
 Examples:
   ./pb.sh test start                      # Start interactive
   ./pb.sh test start --quiet              # Start with no output
-  ./pb.sh test start --reset             # Reset DB and start
+  ./pb.sh test start --reset              # Reset DB and start
+  ./pb.sh test start --full --quiet       # Full setup for testing (recommended)
 ```
 
 ### User Seeding (`./pb.sh <env> seed-users`)

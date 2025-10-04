@@ -52,16 +52,27 @@ your-project/
 
 ### Test Integration Scripts
 
+**Performance-optimized (recommended):**
 ```json
 {
   "scripts": {
     "test": "npm run test:pb:setup && npm run test:run && npm run test:pb:cleanup",
     "test:run": "jest",
-    "test:pb:setup": "./pocketbase/pb.sh test start --quiet --reset && ./pocketbase/pb.sh test setup && ./pocketbase/pb.sh test seed-users",
-    "test:pb:cleanup": "./pocketbase/pb.sh test stop",
+    "test:pb:setup": "./pocketbase/pb.sh test start --full --quiet",
+    "test:pb:cleanup": "./pocketbase/pb.sh test reset --force",
     
     "test:watch": "npm run test:pb:setup && jest --watch",
     "test:ci": "npm run test:pb:setup && jest --ci --coverage && npm run test:pb:cleanup"
+  }
+}
+```
+
+**Legacy (slower):**
+```json
+{
+  "scripts": {
+    "test:pb:setup": "./pocketbase/pb.sh test start --quiet --reset && ./pocketbase/pb.sh test setup && ./pocketbase/pb.sh test seed-users",
+    "test:pb:cleanup": "./pocketbase/pb.sh test stop"
   }
 }
 ```
@@ -85,25 +96,30 @@ your-project/
 
 ### Jest Setup
 
+**Performance-optimized (recommended for large test suites):**
+
 Create `tests/setup.js`:
 
 ```javascript
 const { execSync } = require('child_process');
 
-// Global test setup
+// Global test setup - runs once for entire suite
 beforeAll(async () => {
-  // Start PocketBase test server
-  execSync('./pocketbase/pb.sh test start --quiet --reset', { stdio: 'inherit' });
-  execSync('./pocketbase/pb.sh test setup', { stdio: 'inherit' });
-  execSync('./pocketbase/pb.sh test seed-users', { stdio: 'inherit' });
+  // Full setup: admin + start + seed users
+  execSync('./pocketbase/pb.sh test start --full --quiet', { stdio: 'inherit' });
   
-  // Wait a moment for server to be fully ready
+  // Wait for server to be fully ready
   await new Promise(resolve => setTimeout(resolve, 1000));
 }, 30000);
 
-// Global test teardown
+// Fast cleanup between individual tests - keeps server running
+beforeEach(() => {
+  execSync('./pocketbase/pb.sh test clean-data', { stdio: 'inherit' });
+});
+
+// Global test teardown - runs once at end
 afterAll(() => {
-  execSync('./pocketbase/pb.sh test stop', { stdio: 'inherit' });
+  execSync('./pocketbase/pb.sh test reset --force', { stdio: 'inherit' });
 });
 
 // Test utilities
@@ -112,6 +128,25 @@ global.PB_ADMIN = {
   email: 'test-admin@example.com',
   password: 'test-admin-pass'
 };
+```
+
+**Simple setup (for small test suites):**
+
+```javascript
+const { execSync } = require('child_process');
+
+beforeAll(async () => {
+  execSync('./pocketbase/pb.sh test start --quiet --reset', { stdio: 'inherit' });
+  execSync('./pocketbase/pb.sh test setup', { stdio: 'inherit' });
+  execSync('./pocketbase/pb.sh test seed-users', { stdio: 'inherit' });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+}, 30000);
+
+afterAll(() => {
+  execSync('./pocketbase/pb.sh test stop', { stdio: 'inherit' });
+});
+
+global.PB_TEST_URL = 'http://127.0.0.1:8091';
 ```
 
 Update `jest.config.js`:
