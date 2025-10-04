@@ -69,7 +69,11 @@ TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token // empty' 2>/dev/null)
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
     echo_error "Failed to get admin token"
-    echo_error "Check admin credentials in ${SEED_FILE}"
+    echo_error "Admin user may not exist. Run: ./pb.sh $ENVIRONMENT setup"
+    echo_error "Or use: ./pb.sh test start --full --quiet (for full initialization)"
+    if [ -f "$SEED_FILE" ]; then
+        echo_debug "Using credentials from: ${SEED_FILE}"
+    fi
     exit 1
 fi
 
