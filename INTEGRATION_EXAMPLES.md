@@ -4,7 +4,7 @@ This document shows how to integrate pb-and-jelly into various project setups fo
 
 ## Project Structure
 
-After running `~/Code/pb-and-jelly/scripts/init-project.sh .` in your project, you'll have:
+After running `~/Code/pb-and-jelly/init-project.sh .` in your project, you'll have:
 
 ```
 your-project/
@@ -323,7 +323,7 @@ services:
 ```bash
 # Initialize pb-and-jelly in your project
 cd /path/to/your/project
-~/Code/pb-and-jelly/scripts/init-project.sh .
+~/Code/pb-and-jelly/init-project.sh .
 
 # Setup for development
 npm run pb:install

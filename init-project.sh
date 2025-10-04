@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PB_AND_JELLY_DIR="$(dirname "$SCRIPT_DIR")"
+PB_AND_JELLY_DIR="$SCRIPT_DIR"
 
 # Define color codes without utils.sh (to avoid PB_PROJECT_DIR requirement)
 RED='\033[0;31m'

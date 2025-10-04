@@ -17,7 +17,7 @@ git clone <repo> ~/Code/pb-and-jelly
 
 # Initialize in your project
 cd /path/to/your-project
-~/Code/pb-and-jelly/scripts/init-project.sh .
+~/Code/pb-and-jelly/init-project.sh .
 
 # Install PocketBase
 cd pocketbase
@@ -39,7 +39,7 @@ cd /path/to/your-project/pocketbase
 cd /path/to/your-project/pocketbase
 
 # Comprehensive integration tests (if available)
-./test-all.sh
+./scripts/test-all.sh
 
 # Or manual testing
 ./pb.sh test start --quiet --reset

@@ -39,7 +39,7 @@ git clone <your-repo> ~/Code/pb-and-jelly
 
 ```bash
 cd /path/to/your-project
-~/Code/pb-and-jelly/scripts/init-project.sh .
+~/Code/pb-and-jelly/init-project.sh .
 ```
 
 This creates a `pocketbase/` directory with:
@@ -301,16 +301,25 @@ Examples:
 pb-and-jelly/
 ├── .gitignore           # Ignore patterns
 ├── README.md            # This file
-├── pb.sh                # Main interface script
-├── bin/                 # PocketBase binary (gitignored)
+├── init-project.sh      # Initialize pb-and-jelly in a project
+├── .pb-version          # Version pinning for testing
+├── bin/                 # PocketBase binary (gitignored, for testing)
 │   └── pocketbase
-├── dev/                 # Development environment (gitignored)
+├── dev/                 # Development environment (gitignored, for testing)
 │   ├── pb_data/         # Development database
 │   └── pocketbase.pid   # Dev server PID
-├── test/                # Test environment (gitignored)
+├── test/                # Test environment (gitignored, for testing)
 │   ├── pb_data/         # Test database
 │   └── pocketbase.pid   # Test server PID
+├── template/            # Template files for project initialization
+│   ├── pb.sh            # Project wrapper script
+│   ├── .pb-version      # Version pinning
+│   ├── dev/             # Dev environment files
+│   ├── test/            # Test environment files
+│   └── ...
 └── scripts/             # All utility scripts
+    ├── pb.sh            # Main interface script (internal)
+    ├── test-all.sh      # Comprehensive test script
     ├── utils.sh         # Shared utilities
     ├── pb-dev.sh        # Development server launcher (internal)
     ├── pb-test.sh       # Test server launcher (internal)

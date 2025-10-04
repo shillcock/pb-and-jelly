@@ -8,14 +8,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check that PB_PROJECT_DIR is set (must be called via project wrapper)
-# Exception: init command can be called directly (deprecated, use scripts/init-project.sh)
+# Exception: init command can be called directly (deprecated, use init-project.sh)
 if [ -z "$PB_PROJECT_DIR" ] && [ "$1" != "init" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
     echo "Error: This script must be called via project wrapper script"
     echo ""
     echo "To use pb-and-jelly:"
     echo "  1. Initialize pb-and-jelly in your project:"
     echo "     cd /path/to/your-project"
-    echo "     $SCRIPT_DIR/scripts/init-project.sh ."
+    echo "     $SCRIPT_DIR/init-project.sh ."
     echo ""
     echo "  2. Use the project wrapper:"
     echo "     cd /path/to/your-project/pocketbase"
@@ -273,7 +273,7 @@ case $FIRST_ARG in
         exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
         ;;
     init)
-        exec "$SCRIPT_DIR/scripts/init-project.sh" "$@"
+        exec "$SCRIPT_DIR/init-project.sh" "$@"
         ;;
     upgrade)
         show_upgrade_options

@@ -19,7 +19,7 @@ fi
 PB_CORE_PATH="$(cat "$WRAPPER_DIR/.pb-core")"
 
 # Verify pb-and-jelly installation exists
-if [ ! -f "$PB_CORE_PATH/pb.sh" ]; then
+if [ ! -f "$PB_CORE_PATH/scripts/pb.sh" ]; then
     echo "Error: pb-and-jelly not found at: $PB_CORE_PATH"
     echo "Update pb-and-jelly location or reinstall pb-and-jelly"
     exit 1
@@ -29,4 +29,4 @@ fi
 export PB_PROJECT_DIR="$WRAPPER_DIR"
 
 # Call the main pb-and-jelly script with all arguments
-exec "$PB_CORE_PATH/pb.sh" "$@"
+exec "$PB_CORE_PATH/scripts/pb.sh" "$@"
