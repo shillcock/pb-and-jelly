@@ -330,9 +330,9 @@ case $FIRST_ARG in
                     echo_error "reset command is only available for test environment"
                     exit 1
                 fi
-                # Stop then clean
-                "$SCRIPT_DIR/stop.sh" "$ENVIRONMENT" "$@"
-                "$SCRIPT_DIR/clean.sh" "$ENVIRONMENT" --force
+                # Stop then clean (pass --force flag if provided)
+                "$SCRIPT_DIR/stop.sh" "$ENVIRONMENT"
+                "$SCRIPT_DIR/clean.sh" "$ENVIRONMENT" "$@"
                 echo_success "Test environment reset complete"
                 ;;
             status)
