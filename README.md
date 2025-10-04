@@ -319,7 +319,7 @@ pb-and-jelly/
 │   └── ...
 └── scripts/             # All utility scripts
     ├── pb.sh            # Main interface script (internal)
-    ├── test-all.sh      # Comprehensive test script
+
     ├── utils.sh         # Shared utilities
     ├── pb-dev.sh        # Development server launcher (internal)
     ├── pb-test.sh       # Test server launcher (internal)

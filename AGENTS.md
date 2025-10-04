@@ -38,10 +38,7 @@ cd /path/to/your-project/pocketbase
 ```bash
 cd /path/to/your-project/pocketbase
 
-# Comprehensive integration tests (if available)
-./scripts/test-all.sh
-
-# Or manual testing
+# Start test environment
 ./pb.sh test start --quiet --reset
 ./pb.sh test seed-users
 # Run your tests
