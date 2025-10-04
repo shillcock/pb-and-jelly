@@ -55,7 +55,8 @@ fi
 echo_debug "Authenticating as admin..."
 
 # Authenticate as admin to get token
-AUTH_RESPONSE=$(curl -s -X POST "${PB_URL}/api/admins/auth-with-password" \
+# Note: In PocketBase 0.23+, admins became superusers and the endpoint changed
+AUTH_RESPONSE=$(curl -s -X POST "${PB_URL}/api/collections/_superusers/auth-with-password" \
     -H "Content-Type: application/json" \
     -d "{\"identity\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" 2>/dev/null)
 
