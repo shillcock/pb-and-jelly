@@ -337,6 +337,32 @@ Examples:
   ./pb.sh clean-all --force           # Clean both without confirmation
 ```
 
+### Migrations (`./pb.sh <env> migrate`)
+
+Run database migrations for dev or test environments:
+
+```bash
+./pb.sh <env> migrate <subcommand> [args]
+
+Subcommands:
+  up              Run all available migrations
+  down [number]   Revert the last [number] applied migrations
+  create name     Create new blank migration template file
+  collections     Create migration file with snapshot of current collections
+  history-sync    Clean up migration history for deleted files
+
+Examples:
+  ./pb.sh dev migrate create add_posts_table  # Create new migration
+  ./pb.sh dev migrate up                      # Apply all pending migrations
+  ./pb.sh dev migrate down 1                  # Revert last migration
+  ./pb.sh dev migrate collections             # Snapshot current collections
+  ./pb.sh test migrate up                     # Apply migrations to test
+```
+
+**Note:** Migrations are shared between dev and test environments and stored in `pb_migrations/`. During `serve`, migrations are automatically applied with the `--automigrate` flag (enabled by default).
+
+For more details, see the [PocketBase migrations documentation](https://pocketbase.io/docs/js-migrations/).
+
 ## Directory Structure
 
 ```

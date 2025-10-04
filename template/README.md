@@ -79,7 +79,21 @@ Manage database schema in `pb_migrations/*.js` files:
 - Data migrations
 - Shared between dev and test environments
 
-See [PocketBase JS Overview](https://pocketbase.io/docs/js-overview/) for documentation.
+```bash
+# Create new migration
+./pb.sh dev migrate create my_migration
+
+# Apply migrations (or they auto-apply during serve)
+./pb.sh dev migrate up
+
+# Revert last migration
+./pb.sh dev migrate down 1
+
+# Create snapshot of current collections
+./pb.sh dev migrate collections
+```
+
+See [PocketBase JS Overview](https://pocketbase.io/docs/js-overview/) and [Migrations documentation](https://pocketbase.io/docs/js-migrations/) for more details.
 
 ## Directory Structure
 

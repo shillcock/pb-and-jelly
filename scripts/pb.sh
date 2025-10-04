@@ -298,7 +298,7 @@ case $FIRST_ARG in
         if [ $# -eq 0 ]; then
             echo_error "Command required after environment"
             echo_info "Usage: $0 $ENVIRONMENT <command>"
-            echo_info "Available commands: start, stop, setup, seed-users, clean, status"
+            echo_info "Available commands: start, stop, setup, seed-users, migrate, clean, status"
             exit 1
         fi
         
@@ -328,6 +328,9 @@ case $FIRST_ARG in
                 ;;
             seed-users)
                 exec "$SCRIPT_DIR/seed-users.sh" "$ENVIRONMENT" "$@"
+                ;;
+            migrate)
+                exec "$SCRIPT_DIR/migrate.sh" "$ENVIRONMENT" "$@"
                 ;;
             clean)
                 exec "$SCRIPT_DIR/clean.sh" "$ENVIRONMENT" "$@"
@@ -359,6 +362,7 @@ case $FIRST_ARG in
                 echo "  stop          Stop $ENVIRONMENT server"
                 echo "  setup         Set up admin user (without running server)"
                 echo "  seed-users    Seed users from JSON file"
+                echo "  migrate       Run database migrations"
                 echo "  clean         Clean $ENVIRONMENT environment data"
                 echo "  clean-data    Fast data cleanup (keeps server running)"
                 if [ "$ENVIRONMENT" = "test" ]; then
@@ -376,12 +380,14 @@ case $FIRST_ARG in
                 fi
                 echo "  $0 $ENVIRONMENT setup                    # Setup admin user first"
                 echo "  $0 $ENVIRONMENT seed-users               # Seed users from JSON"
+                echo "  $0 $ENVIRONMENT migrate up               # Apply all migrations"
+                echo "  $0 $ENVIRONMENT migrate create my_table  # Create new migration"
                 echo "  $0 $ENVIRONMENT clean-data               # Fast cleanup (keeps server running)"
                 echo "  $0 $ENVIRONMENT clean --force            # Clean without confirmation"
                 ;;
             *)
                 echo_error "Unknown command for $ENVIRONMENT environment: $COMMAND"
-                echo_info "Available commands: start, stop, setup, seed-users, clean, status"
+                echo_info "Available commands: start, stop, setup, seed-users, migrate, clean, status"
                 echo_info "Use '$0 $ENVIRONMENT --help' for more information"
                 exit 1
                 ;;

@@ -31,6 +31,7 @@ cd pocketbase
 cd /path/to/your-project/pocketbase
 ./pb.sh dev start           # Port 8090
 ./pb.sh dev seed-users      # Optional
+./pb.sh dev migrate up      # Apply migrations
 ./pb.sh dev stop
 ```
 
@@ -56,6 +57,14 @@ cd /path/to/your-project/pocketbase
 ./pb.sh test seed-users
 # Run your tests
 ./pb.sh test stop
+```
+
+### Migrations
+```bash
+./pb.sh dev migrate up              # Apply all migrations
+./pb.sh dev migrate create my_table # Create new migration
+./pb.sh dev migrate collections     # Snapshot collections
+./pb.sh dev migrate down 1          # Revert last migration
 ```
 
 ### Status/Cleanup
