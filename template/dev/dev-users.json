@@ -1,0 +1,13 @@
+{
+  "admin": {
+    "email": "dev-admin@example.com",
+    "password": "dev-admin-pass"
+  },
+  "users": [
+    {
+      "email": "dev-user@example.com",
+      "password": "devpass123",
+      "name": "Dev User"
+    }
+  ]
+}

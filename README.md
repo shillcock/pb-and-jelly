@@ -82,7 +82,7 @@ All configuration files live in your project's `pocketbase/` directory (created 
 - `pocketbase/dev/dev-users.json` - Development environment users (optional)
 - `pocketbase/test/test-users.json` - Test environment users (optional)
 
-### Environment Settings (hardcoded)
+### Environment Settings
 
 - **Dev**: Port 8090, Host 127.0.0.1
 - **Test**: Port 8091, Host 127.0.0.1
@@ -133,7 +133,7 @@ For setting up multiple users (useful for testing scenarios), create JSON seed f
 
 **Configuration Priority:**
 1. Seed file credentials (if available)
-2. Hardcoded fallback values (built-in)
+2. Built-in default values
 
 ## Commands
 
@@ -226,8 +226,8 @@ npm test
 ./pb.sh dev start [options] [pocketbase-args...]
 
 Options:
-  --port PORT    Set port (default: from .env.local)
-  --host HOST    Set host (default: from .env.local)
+  --port PORT    Set port (default: 8090)
+  --host HOST    Set host (default: 127.0.0.1)
   --help, -h     Show help
 
 Examples:
@@ -242,8 +242,8 @@ Examples:
 ./pb.sh test start [options] [pocketbase-args...]
 
 Options:
-  --port PORT        Set port (default: from .env.local)
-  --host HOST        Set host (default: from .env.local)
+  --port PORT        Set port (default: 8091)
+  --host HOST        Set host (default: 127.0.0.1)
   --reset           Reset database before starting
   --quiet, -q       Suppress output
   --help, -h        Show help
@@ -299,8 +299,6 @@ Examples:
 
 ```
 pb-and-jelly/
-├── .env.example          # Example environment config
-├── .env.local           # Your local config (gitignored)
 ├── .gitignore           # Ignore patterns
 ├── README.md            # This file
 ├── pb.sh                # Main interface script
@@ -326,14 +324,14 @@ pb-and-jelly/
 
 ### Development Environment
 
-- **Port**: 8090 (configurable in `.env.local`)
+- **Port**: 8090
 - **Directory**: `./dev/`
 - **Purpose**: Main development work
 - **Database**: Persistent across restarts
 
 ### Test Environment
 
-- **Port**: 8091 (configurable in `.env.local`)
+- **Port**: 8091
 - **Directory**: `./test/`
 - **Purpose**: Automated testing
 - **Database**: Can be reset easily with `--reset` flag
@@ -414,7 +412,7 @@ class TestPocketBase(unittest.TestCase):
 
 Make sure scripts are executable:
 ```bash
-chmod +x pb-cli pb-dev pb-test scripts/*.sh
+chmod +x pb.sh scripts/*.sh
 ```
 
 ### Clean slate
@@ -427,18 +425,18 @@ rm -f bin/pocketbase
 ./pb.sh install
 ```
 
-### Environment not loading
+### Check configuration
 
-Check that `.env.local` exists and has valid syntax:
+View the current PocketBase version:
 ```bash
-cat .env.local
+cat pocketbase/.pb-version
 ```
 
 ## Production Deployment
 
 This toolkit is for local development only. For production:
 
-1. **PocketHost.io**: Deploy your PocketBase to PocketHost.io (as configured in your rules)
+1. **PocketHost.io**: Deploy your PocketBase to PocketHost.io
 2. **Environment Variables**: Use production values in your app
 3. **Database Migration**: Export your dev schema and import to production
 
@@ -451,4 +449,24 @@ This toolkit is for local development only. For production:
 
 ## License
 
-[Your License Here]
+MIT License
+
+Copyright (c) 2025
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

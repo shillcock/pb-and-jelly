@@ -34,15 +34,10 @@ echo_success() {
 
 # Read PocketBase version from .pb-version file
 get_pb_version() {
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
-    local project_dir="$script_dir"
-    
-    # Find project root by looking for .pb-version or pb.sh
-    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/.pb-version" ] && [ ! -f "$project_dir/pb.sh" ]; do
-        project_dir="$(dirname "$project_dir")"
-    done
-    
+    # Use project directory from PB_PROJECT_DIR
+    local project_dir="$(get_project_dir)"
     local version_file="$project_dir/.pb-version"
+    
     if [ -f "$version_file" ]; then
         # Read version and trim whitespace
         local version=$(cat "$version_file" | tr -d '\n\r\t ' | head -1)
@@ -91,27 +86,14 @@ load_env() {
 
 # Get project directory
 get_project_dir() {
-    # If PB_PROJECT_DIR is set (from wrapper script), use that
-    if [ -n "$PB_PROJECT_DIR" ]; then
-        echo "$PB_PROJECT_DIR"
-        return 0
-    fi
-    
-    # Otherwise, find project root relative to script directory
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local project_dir="$script_dir"
-    
-    # Find project root by looking for pb.sh script
-    while [ "$project_dir" != "/" ] && [ ! -f "$project_dir/pb.sh" ]; do
-        project_dir="$(dirname "$project_dir")"
-    done
-    
-    if [ "$project_dir" = "/" ]; then
-        echo_error "Could not find project root directory"
+    # PB_PROJECT_DIR must be set by wrapper script
+    if [ -z "$PB_PROJECT_DIR" ]; then
+        echo_error "PB_PROJECT_DIR not set. This script must be called via project wrapper."
+        echo_error "Usage: cd your-project/pocketbase && ./pb.sh <command>"
         exit 1
     fi
     
-    echo "$project_dir"
+    echo "$PB_PROJECT_DIR"
 }
 
 # Check if PocketBase binary exists

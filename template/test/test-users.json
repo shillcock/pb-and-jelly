@@ -1,0 +1,18 @@
+{
+  "admin": {
+    "email": "test-admin@example.com", 
+    "password": "test-admin-pass"
+  },
+  "users": [
+    {
+      "email": "alice@example.com",
+      "password": "alice123",
+      "name": "Alice Cooper"
+    },
+    {
+      "email": "bob@example.com",
+      "password": "bob12345",
+      "name": "Bob Smith"
+    }
+  ]
+}

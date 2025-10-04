@@ -1,0 +1,16 @@
+# PocketBase binary
+bin/
+
+# PocketBase data directories
+dev/pb_data/
+test/pb_data/
+
+# Runtime files
+*.log
+*.pid
+
+# Local configuration (absolute path to pb-and-jelly)
+.pb-and-jelly
+
+# macOS
+.DS_Store

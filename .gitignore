@@ -1,8 +1,6 @@
 
-# PocketBase data directories
-dev/
-test/
-bin/
+# Test project directory (optional, for local testing)
+pocketbase/
 
 # Temporary files
 *.tmp

@@ -6,10 +6,29 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/scripts/utils.sh"
 
-# Load environment for help display
-load_env
+# Check that PB_PROJECT_DIR is set (must be called via project wrapper)
+# Exception: init command can be called directly (deprecated, use scripts/init-project.sh)
+if [ -z "$PB_PROJECT_DIR" ] && [ "$1" != "init" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
+    echo "Error: This script must be called via project wrapper script"
+    echo ""
+    echo "To use pb-and-jelly:"
+    echo "  1. Initialize pb-and-jelly in your project:"
+    echo "     cd /path/to/your-project"
+    echo "     $SCRIPT_DIR/scripts/init-project.sh ."
+    echo ""
+    echo "  2. Use the project wrapper:"
+    echo "     cd /path/to/your-project/pocketbase"
+    echo "     ./pb.sh <command>"
+    exit 1
+fi
+
+# Only load utils if not running init (which doesn't need PB_PROJECT_DIR)
+if [ "$1" != "init" ]; then
+    source "$SCRIPT_DIR/scripts/utils.sh"
+    # Load environment for help display
+    load_env
+fi
 
 show_help() {
     echo "PocketBase Development CLI"
@@ -27,7 +46,6 @@ show_help() {
     echo "Global Commands:"
     echo "  install             Download and install PocketBase binary"
     echo "  upgrade             Show available versions and upgrade PocketBase"
-    echo "  init [path]         Initialize pb-tools in another project"
     echo "  status              Show status of all environments"
     echo "  stop-all            Stop all running servers"
     echo "  clean-all           Clean all environment data"
@@ -37,7 +55,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 install                      # Download PocketBase"
-    echo "  $0 init /path/to/project        # Initialize pb-tools in another project"
+    echo "  $0 init /path/to/project        # Initialize pb-and-jelly in another project"
     echo "  $0 upgrade                      # Show available versions and upgrade"
     echo "  $0 dev start                    # Start dev server"
     echo "  $0 test start --quiet --reset   # Start test server with clean DB"
@@ -50,7 +68,7 @@ show_help() {
     echo "  .pb-version - Version pinning"
     echo "  {env}/{env}-users.json - User seed files (optional)"
     echo ""
-    echo "Environment Settings (hardcoded):"
+    echo "Environment Settings:"
     echo "  Dev: Port 8090, Host 127.0.0.1"
     echo "  Test: Port 8091, Host 127.0.0.1"
     echo "  PB Version: $PB_VERSION (from .pb-version file)"
@@ -74,7 +92,7 @@ show_status() {
         echo "  URL: http://$PB_HOST:$dev_port"
         echo "  Admin UI: http://$PB_HOST:$dev_port/_/"
     elif check_port "$dev_port"; then
-        echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
+        echo -e "${YELLOW}Port in use${NC} (not managed by pb-and-jelly)"
     else
         echo -e "${RED}Stopped${NC}"
     fi
@@ -93,7 +111,7 @@ show_status() {
         echo "  URL: http://$PB_HOST:$test_port"
         echo "  Admin UI: http://$PB_HOST:$test_port/_/"
     elif check_port "$test_port"; then
-        echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
+        echo -e "${YELLOW}Port in use${NC} (not managed by pb-and-jelly)"
     else
         echo -e "${RED}Stopped${NC}"
     fi
@@ -147,7 +165,7 @@ show_env_status() {
         echo "  Admin UI: http://$PB_HOST:$port/_/"
         echo "  Data Directory: $project_dir/$environment/pb_data"
     elif check_port "$port"; then
-        echo -e "${YELLOW}Port in use${NC} (not managed by pb-tools)"
+        echo -e "${YELLOW}Port in use${NC} (not managed by pb-and-jelly)"
     else
         echo -e "${RED}Stopped${NC}"
     fi
