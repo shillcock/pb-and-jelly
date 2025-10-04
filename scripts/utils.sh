@@ -101,13 +101,24 @@ check_pocketbase_binary() {
     local project_dir="$(get_project_dir)"
     local pb_binary="$project_dir/bin/pocketbase"
     
-    if [ ! -f "$pb_binary" ]; then
-        echo_error "PocketBase binary not found at $pb_binary"
-        echo_info "Run './scripts/install-pocketbase.sh' to download PocketBase"
-        return 1
+    # Check for local binary first (preferred)
+    if [ -f "$pb_binary" ]; then
+        echo "$pb_binary"
+        return 0
     fi
     
-    echo "$pb_binary"
+    # Fallback to global installation
+    if command -v pocketbase >/dev/null 2>&1; then
+        echo "pocketbase"
+        return 0
+    fi
+    
+    # Neither found - error
+    echo_error "PocketBase binary not found"
+    echo_info "Either:"
+    echo_info "  - Run './pb.sh install' to download locally"
+    echo_info "  - Or install globally: brew install pocketbase"
+    return 1
 }
 
 # Wait for PocketBase to be ready

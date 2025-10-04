@@ -19,9 +19,9 @@ git clone <repo> ~/Code/pb-and-jelly
 cd /path/to/your-project
 ~/Code/pb-and-jelly/init-project.sh .
 
-# Install PocketBase
+# Install PocketBase (optional if already installed globally)
 cd pocketbase
-./pb.sh install
+./pb.sh install          # Or skip if using global install
 ./pb.sh dev setup
 ./pb.sh test setup
 ```

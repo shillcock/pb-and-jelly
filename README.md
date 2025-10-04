@@ -50,11 +50,25 @@ This creates a `pocketbase/` directory with:
 - `.pb-version` - Version pinning for this project
 - `.pb-core` - Path to pb-and-jelly (gitignored)
 
-### 3. Install and start
+### 3. Install PocketBase
+
+**Option A: Local installation (recommended for per-project versions)**
+```bash
+cd pocketbase
+./pb.sh install           # Downloads PocketBase to bin/ directory
+```
+
+**Option B: Use global installation (if already installed)**
+```bash
+# If you have PocketBase installed globally (e.g., via brew)
+# Skip ./pb.sh install - it will automatically use the global version
+brew install pocketbase   # Example: install globally
+```
+
+### 4. Start and setup
 
 ```bash
 cd pocketbase
-./pb.sh install           # Downloads PocketBase binary
 ./pb.sh dev start         # Starts development server
 
 # In another terminal
@@ -71,11 +85,21 @@ cd pocketbase
 
 All configuration files live in your project's `pocketbase/` directory (created by `init-project.sh`):
 
-### Version Pinning
+### PocketBase Installation
 
-- `pocketbase/.pb-version` - Controls which PocketBase version gets installed for this project
-- Each project can use a different PocketBase version
-- Edit this file and run `./pb.sh install` to change versions
+pb-and-jelly supports two installation modes:
+
+**Local Installation (recommended):**
+- PocketBase binary stored in `pocketbase/bin/` directory
+- Version controlled per-project via `.pb-version` file
+- Each project can use different PocketBase versions
+- Edit `.pb-version` and run `./pb.sh install` to change versions
+
+**Global Installation:**
+- Uses system-wide PocketBase (e.g., installed via Homebrew)
+- Automatically detected if local binary not found
+- All projects use the same PocketBase version
+- No `./pb.sh install` needed
 
 ### User Seed Files
 

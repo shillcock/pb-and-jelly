@@ -120,11 +120,16 @@ show_status() {
     if check_pocketbase_binary >/dev/null 2>&1; then
         local pb_binary=$(check_pocketbase_binary)
         local version=$("$pb_binary" --version 2>/dev/null | head -1 || echo "unknown")
-        echo -e "${GREEN}Installed${NC} ($version)"
+        
+        if [[ "$pb_binary" == *"/bin/pocketbase" ]]; then
+            echo -e "${GREEN}Installed (local)${NC} ($version)"
+        else
+            echo -e "${GREEN}Installed (global)${NC} ($version)"
+        fi
         echo "  Path: $pb_binary"
     else
         echo -e "${RED}Not installed${NC}"
-        echo "  Run: $0 install"
+        echo "  Run: $0 install (or install globally)"
     fi
 }
 
