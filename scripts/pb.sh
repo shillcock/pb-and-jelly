@@ -8,8 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check that PB_PROJECT_DIR is set (must be called via project wrapper)
-# Exception: init command can be called directly (deprecated, use init-project.sh)
-if [ -z "$PB_PROJECT_DIR" ] && [ "$1" != "init" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
+if [ -z "$PB_PROJECT_DIR" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
     echo "Error: This script must be called via project wrapper script"
     echo ""
     echo "To use pb-and-jelly:"
@@ -23,12 +22,10 @@ if [ -z "$PB_PROJECT_DIR" ] && [ "$1" != "init" ] && [ "$1" != "--help" ] && [ "
     exit 1
 fi
 
-# Only load utils if not running init (which doesn't need PB_PROJECT_DIR)
-if [ "$1" != "init" ]; then
-    source "$SCRIPT_DIR/scripts/utils.sh"
-    # Load environment for help display
-    load_env
-fi
+# Load utils
+source "$SCRIPT_DIR/scripts/utils.sh"
+# Load environment for help display
+load_env
 
 show_help() {
     echo "PocketBase Development CLI"
@@ -55,7 +52,6 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 install                      # Download PocketBase"
-    echo "  $0 init /path/to/project        # Initialize pb-and-jelly in another project"
     echo "  $0 upgrade                      # Show available versions and upgrade"
     echo "  $0 dev start                    # Start dev server"
     echo "  $0 test start --quiet --reset   # Start test server with clean DB"
@@ -271,9 +267,6 @@ shift
 case $FIRST_ARG in
     install)
         exec "$SCRIPT_DIR/scripts/install-pocketbase.sh" "$@"
-        ;;
-    init)
-        exec "$SCRIPT_DIR/init-project.sh" "$@"
         ;;
     upgrade)
         show_upgrade_options
