@@ -198,8 +198,8 @@ For advanced usage, automation, or debugging, you can run scripts directly:
 ### Testing Workflow
 
 ```bash
-# Start test server in background
-./pb.sh test start --background --quiet
+# Start test server
+./pb.sh test start --quiet
 
 # Seed test users from JSON
 ./pb.sh test seed-users
@@ -250,14 +250,13 @@ Examples:
 Options:
   --port PORT        Set port (default: from .env.local)
   --host HOST        Set host (default: from .env.local)
-  --background, -bg  Run in background
   --reset           Reset database before starting
   --quiet, -q       Suppress output
   --help, -h        Show help
 
 Examples:
   ./pb.sh test start                      # Start interactive
-  ./pb.sh test start --background --quiet # Background with no output
+  ./pb.sh test start --quiet              # Start with no output
   ./pb.sh test start --reset             # Reset DB and start
 ```
 
@@ -357,7 +356,7 @@ const execPromise = util.promisify(exec);
 
 beforeAll(async () => {
   // Start test server
-  await execPromise('./pb.sh test start --background --quiet --reset');
+  await execPromise('./pb.sh test start --quiet --reset');
   
   // Seed test users from JSON
   await execPromise('./pb.sh test seed-users');
@@ -385,7 +384,7 @@ class TestPocketBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Start test server
-        subprocess.run(['./pb.sh', 'test', 'start', '--background', '--quiet', '--reset'])
+        subprocess.run(['./pb.sh', 'test', 'start', '--quiet', '--reset'])
         subprocess.run(['./pb.sh', 'test', 'seed-users'])
 
     @classmethod

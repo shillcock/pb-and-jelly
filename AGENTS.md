@@ -6,7 +6,7 @@
 
 **Development**: `./pb.sh dev start` (port 8090), `./pb.sh dev seed-users` (optional), `./pb.sh dev stop`
 
-**Testing**: `./test-all.sh` runs comprehensive integration tests. Or manually: `./pb.sh test start --background --quiet --reset`, `./pb.sh test seed-users`, run tests, `./pb.sh test stop`
+**Testing**: `./test-all.sh` runs comprehensive integration tests. Or manually: `./pb.sh test start --quiet --reset`, `./pb.sh test seed-users`, run tests, `./pb.sh test stop`
 
 **Status/Cleanup**: `./pb.sh status`, `./pb.sh clean-all --force`
 
