@@ -82,10 +82,10 @@ while [[ $# -gt 0 ]]; do
             echo "Any additional arguments will be passed directly to PocketBase"
             echo ""
             echo "Examples:"
-            echo "  $0                           # Start in background (default)"
+            echo "  $0                         # Start in background (default)"
             echo "  $0 --port 9090             # Start on port 9090"
             echo "  $0 --host 0.0.0.0          # Listen on all interfaces"
-            echo "  $0 --foreground             # Start in foreground"
+            echo "  $0 --foreground            # Start in foreground"
             echo "  $0 serve --dev             # Pass --dev flag to PocketBase"
             exit 0
             ;;
@@ -105,17 +105,26 @@ if [ "$QUIET" = false ]; then
     echo_info "Starting PocketBase Development Environment"
     echo_debug "Working directory: $DEV_DIR"
     echo_debug "Binary: $PB_BINARY"
+    echo_debug "Command: ${ARGS[*]}"
     echo_debug "Host: $DEV_HOST"
     echo_debug "Port: $DEV_PORT"
-    echo_debug "Command: ${ARGS[*]}"
-    echo_debug "Background: $BACKGROUND"
 fi
 
 # Create pb_data directory if it doesn't exist
 mkdir -p "$DEV_DIR/pb_data"
 
-# Prepare command with explicit data directory
-PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http "$DEV_HOST:$DEV_PORT" --dir "$DEV_DIR/pb_data")
+# Prepare command with explicit data directory and hooks/migrations paths
+PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http "$DEV_HOST:$DEV_PORT" --dev --dir "$DEV_DIR/pb_data")
+
+# Add hooks directory if it exists
+if [ -d "$PROJECT_DIR/pb_hooks" ]; then
+    PB_CMD+=("--hooksDir" "$PROJECT_DIR/pb_hooks")
+fi
+
+# Add migrations directory if it exists
+if [ -d "$PROJECT_DIR/pb_migrations" ]; then
+    PB_CMD+=("--migrationsDir" "$PROJECT_DIR/pb_migrations")
+fi
 
 if [ "$BACKGROUND" = true ]; then
     # Run in background
@@ -129,11 +138,7 @@ if [ "$BACKGROUND" = true ]; then
     # Create log file for background mode
     LOG_FILE="$DEV_DIR/pocketbase.log"
     
-    if [ "$QUIET" = true ]; then
-        "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
-    else
-        "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
-    fi
+    "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
     
     PB_PID=$!
     echo $PB_PID > "$PROJECT_DIR/dev/pocketbase.pid"

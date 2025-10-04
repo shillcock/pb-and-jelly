@@ -88,8 +88,8 @@ while [[ $# -gt 0 ]]; do
             echo "Any additional arguments will be passed directly to PocketBase"
             echo ""
             echo "Examples:"
-            echo "  $0                           # Start in background (default)"
-            echo "  $0 --port 9091             # Start on port 9091"
+            echo "  $0                          # Start in background (default)"
+            echo "  $0 --port 9091              # Start on port 9091"
             echo "  $0 --foreground --quiet     # Start in foreground, no output"
             echo "  $0 --reset                  # Reset DB and start"
             exit 0
@@ -107,7 +107,6 @@ if [ "$RESET_DB" = true ]; then
         echo_info "Resetting test database..."
     fi
     rm -rf "$TEST_DIR/pb_data"
-    rm -f "$TEST_DIR/pb_hooks"
 fi
 
 # Default to 'serve' command if no command specified
@@ -119,10 +118,9 @@ if [ "$QUIET" = false ]; then
     echo_info "Starting PocketBase Test Environment"
     echo_debug "Working directory: $TEST_DIR"
     echo_debug "Binary: $PB_BINARY"
+    echo_debug "Command: ${ARGS[*]}"
     echo_debug "Host: $TEST_HOST"
     echo_debug "Port: $TEST_PORT"
-    echo_debug "Command: ${ARGS[*]}"
-    echo_debug "Background: $BACKGROUND"
 fi
 
 # Create pb_data directory if it doesn't exist (unless we're resetting)
@@ -130,8 +128,18 @@ if [ "$RESET_DB" = false ]; then
     mkdir -p "$TEST_DIR/pb_data"
 fi
 
-# Prepare command with explicit data directory
+# Prepare command with explicit data directory and hooks/migrations paths
 PB_CMD=("$PB_BINARY" "${ARGS[@]}" --http "$TEST_HOST:$TEST_PORT" --dir "$TEST_DIR/pb_data")
+
+# Add hooks directory if it exists
+if [ -d "$PROJECT_DIR/pb_hooks" ]; then
+    PB_CMD+=("--hooksDir" "$PROJECT_DIR/pb_hooks")
+fi
+
+# Add migrations directory if it exists
+if [ -d "$PROJECT_DIR/pb_migrations" ]; then
+    PB_CMD+=("--migrationsDir" "$PROJECT_DIR/pb_migrations")
+fi
 
 if [ "$BACKGROUND" = true ]; then
     # Run in background
@@ -145,11 +153,7 @@ if [ "$BACKGROUND" = true ]; then
     # Create log file for background mode
     LOG_FILE="$TEST_DIR/pocketbase.log"
     
-    if [ "$QUIET" = true ]; then
-        "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
-    else
-        "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
-    fi
+    "${PB_CMD[@]}" </dev/null >"$LOG_FILE" 2>&1 &
     
     PB_PID=$!
     echo $PB_PID > "$PROJECT_DIR/test/pocketbase.pid"
